@@ -1,0 +1,349 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1300px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "AFKS", "label": "AFKS", "shape": "dot", "title": "AFKS"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AFLT", "label": "AFLT", "shape": "dot", "title": "AFLT"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ALRS", "label": "ALRS", "shape": "dot", "title": "ALRS"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BELU", "label": "BELU", "shape": "dot", "title": "BELU"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CBOM", "label": "CBOM", "shape": "dot", "title": "CBOM"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CHMF", "label": "CHMF", "shape": "dot", "title": "CHMF"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DSKY", "label": "DSKY", "shape": "dot", "title": "DSKY"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GAZP", "label": "GAZP", "shape": "dot", "title": "GAZP"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GCHE", "label": "GCHE", "shape": "dot", "title": "GCHE"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GMKN", "label": "GMKN", "shape": "dot", "title": "GMKN"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HYDR", "label": "HYDR", "shape": "dot", "title": "HYDR"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "INGR", "label": "INGR", "shape": "dot", "title": "INGR"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IRAO", "label": "IRAO", "shape": "dot", "title": "IRAO"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KAZT", "label": "KAZT", "shape": "dot", "title": "KAZT"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LKOH", "label": "LKOH", "shape": "dot", "title": "LKOH"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MAGN", "label": "MAGN", "shape": "dot", "title": "MAGN"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MGNT", "label": "MGNT", "shape": "dot", "title": "MGNT"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MRKK", "label": "MRKK", "shape": "dot", "title": "MRKK"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MTSS", "label": "MTSS", "shape": "dot", "title": "MTSS"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NLMK", "label": "NLMK", "shape": "dot", "title": "NLMK"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NVTK", "label": "NVTK", "shape": "dot", "title": "NVTK"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PHOR", "label": "PHOR", "shape": "dot", "title": "PHOR"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PIKK", "label": "PIKK", "shape": "dot", "title": "PIKK"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PLZL", "label": "PLZL", "shape": "dot", "title": "PLZL"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PMSB", "label": "PMSB", "shape": "dot", "title": "PMSB"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "POLY", "label": "POLY", "shape": "dot", "title": "POLY"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "QIWIDR", "label": "QIWIDR", "shape": "dot", "title": "QIWIDR"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ROSN", "label": "ROSN", "shape": "dot", "title": "ROSN"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RTKM", "label": "RTKM", "shape": "dot", "title": "RTKM"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RUAL", "label": "RUAL", "shape": "dot", "title": "RUAL"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RUGR", "label": "RUGR", "shape": "dot", "title": "RUGR"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SBER", "label": "SBER", "shape": "dot", "title": "SBER"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SFIN", "label": "SFIN", "shape": "dot", "title": "SFIN"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SNGS", "label": "SNGS", "shape": "dot", "title": "SNGS"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TATN", "label": "TATN", "shape": "dot", "title": "TATN"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TGKB", "label": "TGKB", "shape": "dot", "title": "TGKB"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UTAR", "label": "UTAR", "shape": "dot", "title": "UTAR"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VRSB", "label": "VRSB", "shape": "dot", "title": "VRSB"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VTBR", "label": "VTBR", "shape": "dot", "title": "VTBR"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "YAKG", "label": "YAKG", "shape": "dot", "title": "YAKG"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "YNDX", "label": "YNDX", "shape": "dot", "title": "YNDX"}]);
+                  edges = new vis.DataSet([{"from": "AFKS", "title": 0.9612222387259625, "to": "AFLT"}, {"from": "AFKS", "title": 1.5466182326461824, "to": "ALRS"}, {"from": "AFKS", "title": 1.1242278604421698, "to": "BELU"}, {"from": "AFKS", "title": 1.5480162517688474, "to": "CBOM"}, {"from": "AFKS", "title": 1.3089669904792636, "to": "CHMF"}, {"from": "AFKS", "title": 1.2151384931821574, "to": "DSKY"}, {"from": "AFKS", "title": 1.4593209372249691, "to": "GAZP"}, {"from": "AFKS", "title": 1.2273277504031204, "to": "GCHE"}, {"from": "AFKS", "title": 1.2077413080145667, "to": "GMKN"}, {"from": "AFKS", "title": 1.4141343911892181, "to": "HYDR"}, {"from": "AFKS", "title": 1.6419556669340427, "to": "INGR"}, {"from": "AFKS", "title": 1.1928355667051969, "to": "IRAO"}, {"from": "AFKS", "title": 1.5245531655243831, "to": "KAZT"}, {"from": "AFKS", "title": 1.193394493795235, "to": "LKOH"}, {"from": "AFKS", "title": 1.4196969246617528, "to": "MAGN"}, {"from": "AFKS", "title": 1.061195405004011, "to": "MGNT"}, {"from": "AFKS", "title": 1.5491686600143075, "to": "MRKK"}, {"from": "AFKS", "title": 1.241042073788282, "to": "MTSS"}, {"from": "AFKS", "title": 1.651331356064434, "to": "NLMK"}, {"from": "AFKS", "title": 1.5710990166338152, "to": "NVTK"}, {"from": "AFKS", "title": 1.261202220580098, "to": "PHOR"}, {"from": "AFKS", "title": 1.5815572413219932, "to": "PIKK"}, {"from": "AFKS", "title": 0.9150078672745682, "to": "PLZL"}, {"from": "AFKS", "title": 1.7413486000149223, "to": "PMSB"}, {"from": "AFKS", "title": 1.045064543500487, "to": "POLY"}, {"from": "AFKS", "title": 1.2933538625333556, "to": "QIWIDR"}, {"from": "AFKS", "title": 1.6390385803721503, "to": "ROSN"}, {"from": "AFKS", "title": 1.465861746257835, "to": "RTKM"}, {"from": "AFKS", "title": 0.5539735015098605, "to": "RUAL"}, {"from": "AFKS", "title": 0.8736827573753911, "to": "RUGR"}, {"from": "AFKS", "title": 1.536165126194182, "to": "SBER"}, {"from": "AFKS", "title": 1.2541962920471588, "to": "SFIN"}, {"from": "AFKS", "title": 1.208951966944486, "to": "SNGS"}, {"from": "AFKS", "title": 1.1304516225475056, "to": "TATN"}, {"from": "AFKS", "title": 1.220932178274869, "to": "TGKB"}, {"from": "AFKS", "title": 0.7510713661033397, "to": "UTAR"}, {"from": "AFKS", "title": 1.0103981543637663, "to": "VRSB"}, {"from": "AFKS", "title": 0.8083960532936711, "to": "VTBR"}, {"from": "AFKS", "title": 1.3213096357853087, "to": "YAKG"}, {"from": "AFKS", "title": 1.3498804762274343, "to": "YNDX"}, {"from": "AFLT", "title": 1.6685029475314996, "to": "ALRS"}, {"from": "AFLT", "title": 1.635643184874253, "to": "BELU"}, {"from": "AFLT", "title": 1.5611939185534691, "to": "CBOM"}, {"from": "AFLT", "title": 1.3382812497030794, "to": "CHMF"}, {"from": "AFLT", "title": 1.1778400964496183, "to": "DSKY"}, {"from": "AFLT", "title": 1.3046906865282282, "to": "GAZP"}, {"from": "AFLT", "title": 1.365424490343101, "to": "GCHE"}, {"from": "AFLT", "title": 1.360204032152126, "to": "GMKN"}, {"from": "AFLT", "title": 1.197766604367875, "to": "HYDR"}, {"from": "AFLT", "title": 1.2604372371235506, "to": "INGR"}, {"from": "AFLT", "title": 1.2409450367378367, "to": "IRAO"}, {"from": "AFLT", "title": 1.0369243979529847, "to": "KAZT"}, {"from": "AFLT", "title": 1.4437563386991772, "to": "LKOH"}, {"from": "AFLT", "title": 1.4717012790344375, "to": "MAGN"}, {"from": "AFLT", "title": 1.164983957567545, "to": "MGNT"}, {"from": "AFLT", "title": 1.3376792380501266, "to": "MRKK"}, {"from": "AFLT", "title": 1.2429912140672383, "to": "MTSS"}, {"from": "AFLT", "title": 1.638834526492281, "to": "NLMK"}, {"from": "AFLT", "title": 1.5142760144899352, "to": "NVTK"}, {"from": "AFLT", "title": 1.2435174939980418, "to": "PHOR"}, {"from": "AFLT", "title": 1.4781656758270252, "to": "PIKK"}, {"from": "AFLT", "title": 0.7443461528761671, "to": "PLZL"}, {"from": "AFLT", "title": 1.7383271720078093, "to": "PMSB"}, {"from": "AFLT", "title": 1.0138132978071166, "to": "POLY"}, {"from": "AFLT", "title": 1.081210882103057, "to": "QIWIDR"}, {"from": "AFLT", "title": 1.4886350267045425, "to": "ROSN"}, {"from": "AFLT", "title": 1.2595688185031517, "to": "RTKM"}, {"from": "AFLT", "title": 1.043060017819466, "to": "RUAL"}, {"from": "AFLT", "title": 0.994301588923119, "to": "RUGR"}, {"from": "AFLT", "title": 1.4976725074831196, "to": "SBER"}, {"from": "AFLT", "title": 1.4522453715239891, "to": "SFIN"}, {"from": "AFLT", "title": 1.4246499823045136, "to": "SNGS"}, {"from": "AFLT", "title": 1.2060854340172955, "to": "TATN"}, {"from": "AFLT", "title": 1.105521528079733, "to": "TGKB"}, {"from": "AFLT", "title": 0.9951902324108276, "to": "UTAR"}, {"from": "AFLT", "title": 1.2225664016486626, "to": "VRSB"}, {"from": "AFLT", "title": 1.0067621906293331, "to": "VTBR"}, {"from": "AFLT", "title": 1.5985103520241006, "to": "YAKG"}, {"from": "AFLT", "title": 1.3287292569997915, "to": "YNDX"}, {"from": "ALRS", "title": 1.2438588566697424, "to": "BELU"}, {"from": "ALRS", "title": 1.2829220028637875, "to": "CBOM"}, {"from": "ALRS", "title": 1.1736563342849116, "to": "CHMF"}, {"from": "ALRS", "title": 1.4990827727796032, "to": "DSKY"}, {"from": "ALRS", "title": 1.3656755043389461, "to": "GAZP"}, {"from": "ALRS", "title": 1.400916946207743, "to": "GCHE"}, {"from": "ALRS", "title": 1.3782605877048935, "to": "GMKN"}, {"from": "ALRS", "title": 1.1713489935139376, "to": "HYDR"}, {"from": "ALRS", "title": 1.2637158467258311, "to": "INGR"}, {"from": "ALRS", "title": 1.2065541647903277, "to": "IRAO"}, {"from": "ALRS", "title": 1.393461515932, "to": "KAZT"}, {"from": "ALRS", "title": 1.2610389400767965, "to": "LKOH"}, {"from": "ALRS", "title": 0.9993145305356763, "to": "MAGN"}, {"from": "ALRS", "title": 1.3018585233929576, "to": "MGNT"}, {"from": "ALRS", "title": 1.1501741184916943, "to": "MRKK"}, {"from": "ALRS", "title": 1.0179561418716316, "to": "MTSS"}, {"from": "ALRS", "title": 1.0740344045153498, "to": "NLMK"}, {"from": "ALRS", "title": 1.2443347257078696, "to": "NVTK"}, {"from": "ALRS", "title": 1.562755575119613, "to": "PHOR"}, {"from": "ALRS", "title": 1.4378235442450256, "to": "PIKK"}, {"from": "ALRS", "title": 1.7717975670063364, "to": "PLZL"}, {"from": "ALRS", "title": 1.1721507908740154, "to": "PMSB"}, {"from": "ALRS", "title": 1.691929772322099, "to": "POLY"}, {"from": "ALRS", "title": 1.6006338343643112, "to": "QIWIDR"}, {"from": "ALRS", "title": 0.9187710486755969, "to": "ROSN"}, {"from": "ALRS", "title": 1.5937130778248134, "to": "RTKM"}, {"from": "ALRS", "title": 1.494236796766069, "to": "RUAL"}, {"from": "ALRS", "title": 1.4303315270325272, "to": "RUGR"}, {"from": "ALRS", "title": 0.72518696310761, "to": "SBER"}, {"from": "ALRS", "title": 1.4446447823718356, "to": "SFIN"}, {"from": "ALRS", "title": 1.1787648507932484, "to": "SNGS"}, {"from": "ALRS", "title": 1.354539865980211, "to": "TATN"}, {"from": "ALRS", "title": 0.975895008812651, "to": "TGKB"}, {"from": "ALRS", "title": 1.4069903454823207, "to": "UTAR"}, {"from": "ALRS", "title": 1.4877040881860737, "to": "VRSB"}, {"from": "ALRS", "title": 1.311311315174649, "to": "VTBR"}, {"from": "ALRS", "title": 1.1583871194161777, "to": "YAKG"}, {"from": "ALRS", "title": 1.3472967049358802, "to": "YNDX"}, {"from": "BELU", "title": 1.465543230666117, "to": "CBOM"}, {"from": "BELU", "title": 1.3617782937118719, "to": "CHMF"}, {"from": "BELU", "title": 1.4744496396865323, "to": "DSKY"}, {"from": "BELU", "title": 1.6727880250341773, "to": "GAZP"}, {"from": "BELU", "title": 1.3597008993701554, "to": "GCHE"}, {"from": "BELU", "title": 0.9197745073863365, "to": "GMKN"}, {"from": "BELU", "title": 1.6349030799585713, "to": "HYDR"}, {"from": "BELU", "title": 1.7790388399416248, "to": "INGR"}, {"from": "BELU", "title": 1.3809173187802537, "to": "IRAO"}, {"from": "BELU", "title": 1.7971223312549858, "to": "KAZT"}, {"from": "BELU", "title": 0.9156628612081614, "to": "LKOH"}, {"from": "BELU", "title": 1.438458634684072, "to": "MAGN"}, {"from": "BELU", "title": 1.4085352891027954, "to": "MGNT"}, {"from": "BELU", "title": 1.641449543640031, "to": "MRKK"}, {"from": "BELU", "title": 1.2807374334722306, "to": "MTSS"}, {"from": "BELU", "title": 1.38701025359379, "to": "NLMK"}, {"from": "BELU", "title": 1.6159430557519616, "to": "NVTK"}, {"from": "BELU", "title": 1.1864024681066696, "to": "PHOR"}, {"from": "BELU", "title": 1.7365551567501993, "to": "PIKK"}, {"from": "BELU", "title": 1.4127313045376486, "to": "PLZL"}, {"from": "BELU", "title": 1.6320378904845572, "to": "PMSB"}, {"from": "BELU", "title": 1.2405848696334107, "to": "POLY"}, {"from": "BELU", "title": 1.5579974225120925, "to": "QIWIDR"}, {"from": "BELU", "title": 1.5443895283517783, "to": "ROSN"}, {"from": "BELU", "title": 1.8403867785024277, "to": "RTKM"}, {"from": "BELU", "title": 1.0223843395030725, "to": "RUAL"}, {"from": "BELU", "title": 1.4804297513146192, "to": "RUGR"}, {"from": "BELU", "title": 1.418752794716649, "to": "SBER"}, {"from": "BELU", "title": 1.29660360550945, "to": "SFIN"}, {"from": "BELU", "title": 0.9525427904587361, "to": "SNGS"}, {"from": "BELU", "title": 1.1957798699600222, "to": "TATN"}, {"from": "BELU", "title": 1.4480453923572767, "to": "TGKB"}, {"from": "BELU", "title": 1.0244145354245888, "to": "UTAR"}, {"from": "BELU", "title": 1.4305686575455543, "to": "VRSB"}, {"from": "BELU", "title": 1.3459840948938766, "to": "VTBR"}, {"from": "BELU", "title": 0.8177550091703072, "to": "YAKG"}, {"from": "BELU", "title": 1.5041008009488532, "to": "YNDX"}, {"from": "CBOM", "title": 0.9983315745983341, "to": "CHMF"}, {"from": "CBOM", "title": 1.6570737396984723, "to": "DSKY"}, {"from": "CBOM", "title": 1.5680490349750584, "to": "GAZP"}, {"from": "CBOM", "title": 0.7362718813859982, "to": "GCHE"}, {"from": "CBOM", "title": 1.373699553179391, "to": "GMKN"}, {"from": "CBOM", "title": 1.3421214062157811, "to": "HYDR"}, {"from": "CBOM", "title": 1.589006803971598, "to": "INGR"}, {"from": "CBOM", "title": 1.5943836229854667, "to": "IRAO"}, {"from": "CBOM", "title": 1.4173686500219613, "to": "KAZT"}, {"from": "CBOM", "title": 1.038928619940932, "to": "LKOH"}, {"from": "CBOM", "title": 1.0161818232740853, "to": "MAGN"}, {"from": "CBOM", "title": 1.5253784328864313, "to": "MGNT"}, {"from": "CBOM", "title": 1.5345976861727808, "to": "MRKK"}, {"from": "CBOM", "title": 1.334810943908103, "to": "MTSS"}, {"from": "CBOM", "title": 0.7610253711499729, "to": "NLMK"}, {"from": "CBOM", "title": 1.6935810596437715, "to": "NVTK"}, {"from": "CBOM", "title": 1.715750790242716, "to": "PHOR"}, {"from": "CBOM", "title": 1.4957220983710025, "to": "PIKK"}, {"from": "CBOM", "title": 1.6914613017990214, "to": "PLZL"}, {"from": "CBOM", "title": 1.0953854036502342, "to": "PMSB"}, {"from": "CBOM", "title": 1.6438003261736764, "to": "POLY"}, {"from": "CBOM", "title": 1.617968960644141, "to": "QIWIDR"}, {"from": "CBOM", "title": 1.441333816994085, "to": "ROSN"}, {"from": "CBOM", "title": 1.460212051087806, "to": "RTKM"}, {"from": "CBOM", "title": 1.519339763059251, "to": "RUAL"}, {"from": "CBOM", "title": 1.290759314042551, "to": "RUGR"}, {"from": "CBOM", "title": 1.2268184133792197, "to": "SBER"}, {"from": "CBOM", "title": 1.5702515568389015, "to": "SFIN"}, {"from": "CBOM", "title": 1.7736291876565284, "to": "SNGS"}, {"from": "CBOM", "title": 1.4351211340111725, "to": "TATN"}, {"from": "CBOM", "title": 1.5041783220232006, "to": "TGKB"}, {"from": "CBOM", "title": 1.529581823357984, "to": "UTAR"}, {"from": "CBOM", "title": 1.0461320091493012, "to": "VRSB"}, {"from": "CBOM", "title": 1.565014097322534, "to": "VTBR"}, {"from": "CBOM", "title": 1.6849822795490061, "to": "YAKG"}, {"from": "CBOM", "title": 0.864815255508255, "to": "YNDX"}, {"from": "CHMF", "title": 1.7793067380999916, "to": "DSKY"}, {"from": "CHMF", "title": 1.1896045613075603, "to": "GAZP"}, {"from": "CHMF", "title": 1.053437563808564, "to": "GCHE"}, {"from": "CHMF", "title": 1.3077884505873862, "to": "GMKN"}, {"from": "CHMF", "title": 0.7695749651339298, "to": "HYDR"}, {"from": "CHMF", "title": 1.53595150588697, "to": "INGR"}, {"from": "CHMF", "title": 1.0521798843394883, "to": "IRAO"}, {"from": "CHMF", "title": 1.479128144515399, "to": "KAZT"}, {"from": "CHMF", "title": 1.1214139187750674, "to": "LKOH"}, {"from": "CHMF", "title": 0.6152161030207801, "to": "MAGN"}, {"from": "CHMF", "title": 1.058572198351881, "to": "MGNT"}, {"from": "CHMF", "title": 1.056423010212402, "to": "MRKK"}, {"from": "CHMF", "title": 0.8189759686347187, "to": "MTSS"}, {"from": "CHMF", "title": 0.7106639443097533, "to": "NLMK"}, {"from": "CHMF", "title": 1.3743146736061354, "to": "NVTK"}, {"from": "CHMF", "title": 1.380301069525815, "to": "PHOR"}, {"from": "CHMF", "title": 1.5089573531668892, "to": "PIKK"}, {"from": "CHMF", "title": 1.4881970671335782, "to": "PLZL"}, {"from": "CHMF", "title": 1.4513386238356354, "to": "PMSB"}, {"from": "CHMF", "title": 1.4242028301825769, "to": "POLY"}, {"from": "CHMF", "title": 1.2598699825078765, "to": "QIWIDR"}, {"from": "CHMF", "title": 1.4008903047218737, "to": "ROSN"}, {"from": "CHMF", "title": 1.4002690514799276, "to": "RTKM"}, {"from": "CHMF", "title": 1.3410583103561564, "to": "RUAL"}, {"from": "CHMF", "title": 1.1727129556942966, "to": "RUGR"}, {"from": "CHMF", "title": 0.9381100209142492, "to": "SBER"}, {"from": "CHMF", "title": 1.3937743409361054, "to": "SFIN"}, {"from": "CHMF", "title": 1.5405916624032994, "to": "SNGS"}, {"from": "CHMF", "title": 0.8252906182154415, "to": "TATN"}, {"from": "CHMF", "title": 1.1555228838249714, "to": "TGKB"}, {"from": "CHMF", "title": 1.265314564932559, "to": "UTAR"}, {"from": "CHMF", "title": 0.9231293382656465, "to": "VRSB"}, {"from": "CHMF", "title": 1.0914476927587404, "to": "VTBR"}, {"from": "CHMF", "title": 1.5838391464224704, "to": "YAKG"}, {"from": "CHMF", "title": 0.7318593426523671, "to": "YNDX"}, {"from": "DSKY", "title": 1.692488387333911, "to": "GAZP"}, {"from": "DSKY", "title": 1.5875132543553543, "to": "GCHE"}, {"from": "DSKY", "title": 1.3313036775886535, "to": "GMKN"}, {"from": "DSKY", "title": 1.700735323853661, "to": "HYDR"}, {"from": "DSKY", "title": 1.1904234356946368, "to": "INGR"}, {"from": "DSKY", "title": 1.5689584957485174, "to": "IRAO"}, {"from": "DSKY", "title": 1.1188182355277645, "to": "KAZT"}, {"from": "DSKY", "title": 1.4610279641113526, "to": "LKOH"}, {"from": "DSKY", "title": 1.7285885432889763, "to": "MAGN"}, {"from": "DSKY", "title": 1.522663022102363, "to": "MGNT"}, {"from": "DSKY", "title": 1.624957039199471, "to": "MRKK"}, {"from": "DSKY", "title": 1.6654865512296335, "to": "MTSS"}, {"from": "DSKY", "title": 1.8248726934122164, "to": "NLMK"}, {"from": "DSKY", "title": 1.5662066938069663, "to": "NVTK"}, {"from": "DSKY", "title": 1.5841386913576092, "to": "PHOR"}, {"from": "DSKY", "title": 1.2570841650804851, "to": "PIKK"}, {"from": "DSKY", "title": 1.22087852639077, "to": "PLZL"}, {"from": "DSKY", "title": 1.3599758891841855, "to": "PMSB"}, {"from": "DSKY", "title": 1.3941064246696317, "to": "POLY"}, {"from": "DSKY", "title": 1.5279216629222196, "to": "QIWIDR"}, {"from": "DSKY", "title": 1.2636950071190454, "to": "ROSN"}, {"from": "DSKY", "title": 1.42500729943996, "to": "RTKM"}, {"from": "DSKY", "title": 1.1521928677215005, "to": "RUAL"}, {"from": "DSKY", "title": 1.252969193372606, "to": "RUGR"}, {"from": "DSKY", "title": 1.6065027520128097, "to": "SBER"}, {"from": "DSKY", "title": 1.498777250027564, "to": "SFIN"}, {"from": "DSKY", "title": 1.2179466864127835, "to": "SNGS"}, {"from": "DSKY", "title": 1.7234192827365669, "to": "TATN"}, {"from": "DSKY", "title": 1.2664062318861404, "to": "TGKB"}, {"from": "DSKY", "title": 1.2841725284693841, "to": "UTAR"}, {"from": "DSKY", "title": 1.579996083173564, "to": "VRSB"}, {"from": "DSKY", "title": 1.4454014089289278, "to": "VTBR"}, {"from": "DSKY", "title": 1.2555308545856005, "to": "YAKG"}, {"from": "DSKY", "title": 1.6262927252144714, "to": "YNDX"}, {"from": "GAZP", "title": 1.6067474276156841, "to": "GCHE"}, {"from": "GAZP", "title": 1.7436499277161175, "to": "GMKN"}, {"from": "GAZP", "title": 0.7840455488207533, "to": "HYDR"}, {"from": "GAZP", "title": 1.2820598095401412, "to": "INGR"}, {"from": "GAZP", "title": 0.8947138180110606, "to": "IRAO"}, {"from": "GAZP", "title": 1.4692065905069014, "to": "KAZT"}, {"from": "GAZP", "title": 1.7671427301847908, "to": "LKOH"}, {"from": "GAZP", "title": 1.113067739505058, "to": "MAGN"}, {"from": "GAZP", "title": 1.0004118140915832, "to": "MGNT"}, {"from": "GAZP", "title": 0.7936982324865535, "to": "MRKK"}, {"from": "GAZP", "title": 1.1036540288160237, "to": "MTSS"}, {"from": "GAZP", "title": 1.3339365090818185, "to": "NLMK"}, {"from": "GAZP", "title": 0.7328131255455044, "to": "NVTK"}, {"from": "GAZP", "title": 1.138921296008698, "to": "PHOR"}, {"from": "GAZP", "title": 1.2987633571652495, "to": "PIKK"}, {"from": "GAZP", "title": 1.3547132956004668, "to": "PLZL"}, {"from": "GAZP", "title": 1.538238761507975, "to": "PMSB"}, {"from": "GAZP", "title": 1.3463158284988115, "to": "POLY"}, {"from": "GAZP", "title": 0.8948336502562454, "to": "QIWIDR"}, {"from": "GAZP", "title": 1.4360299158290373, "to": "ROSN"}, {"from": "GAZP", "title": 0.9297461292702927, "to": "RTKM"}, {"from": "GAZP", "title": 1.6735477236320728, "to": "RUAL"}, {"from": "GAZP", "title": 1.3997434501179604, "to": "RUGR"}, {"from": "GAZP", "title": 1.191945836535537, "to": "SBER"}, {"from": "GAZP", "title": 1.0199243499044843, "to": "SFIN"}, {"from": "GAZP", "title": 1.4515946730903668, "to": "SNGS"}, {"from": "GAZP", "title": 1.176880344218518, "to": "TATN"}, {"from": "GAZP", "title": 1.3029165383877435, "to": "TGKB"}, {"from": "GAZP", "title": 1.5407161511389247, "to": "UTAR"}, {"from": "GAZP", "title": 1.390266777791184, "to": "VRSB"}, {"from": "GAZP", "title": 1.0477066257534693, "to": "VTBR"}, {"from": "GAZP", "title": 1.5534968842643915, "to": "YAKG"}, {"from": "GAZP", "title": 1.351426702695433, "to": "YNDX"}, {"from": "GCHE", "title": 1.275883438873066, "to": "GMKN"}, {"from": "GCHE", "title": 1.3938718980387, "to": "HYDR"}, {"from": "GCHE", "title": 1.6317021489510588, "to": "INGR"}, {"from": "GCHE", "title": 1.4266933585685837, "to": "IRAO"}, {"from": "GCHE", "title": 1.5200883216440613, "to": "KAZT"}, {"from": "GCHE", "title": 0.8786019642756543, "to": "LKOH"}, {"from": "GCHE", "title": 1.045537723501538, "to": "MAGN"}, {"from": "GCHE", "title": 1.5108538444873492, "to": "MGNT"}, {"from": "GCHE", "title": 1.5631925970979248, "to": "MRKK"}, {"from": "GCHE", "title": 1.242255237798725, "to": "MTSS"}, {"from": "GCHE", "title": 1.013633683399982, "to": "NLMK"}, {"from": "GCHE", "title": 1.7659517616906495, "to": "NVTK"}, {"from": "GCHE", "title": 1.6027622755174413, "to": "PHOR"}, {"from": "GCHE", "title": 1.5999394276858743, "to": "PIKK"}, {"from": "GCHE", "title": 1.4369991475496426, "to": "PLZL"}, {"from": "GCHE", "title": 1.3708339149210735, "to": "PMSB"}, {"from": "GCHE", "title": 1.4059846230093525, "to": "POLY"}, {"from": "GCHE", "title": 1.5655758983520156, "to": "QIWIDR"}, {"from": "GCHE", "title": 1.5625656027308097, "to": "ROSN"}, {"from": "GCHE", "title": 1.5127397474026576, "to": "RTKM"}, {"from": "GCHE", "title": 1.220607108202109, "to": "RUAL"}, {"from": "GCHE", "title": 1.0297996828744922, "to": "RUGR"}, {"from": "GCHE", "title": 1.432863047263669, "to": "SBER"}, {"from": "GCHE", "title": 1.537959318091997, "to": "SFIN"}, {"from": "GCHE", "title": 1.6615960019301275, "to": "SNGS"}, {"from": "GCHE", "title": 1.3329838523039035, "to": "TATN"}, {"from": "GCHE", "title": 1.470325492145995, "to": "TGKB"}, {"from": "GCHE", "title": 1.248409194069257, "to": "UTAR"}, {"from": "GCHE", "title": 0.8553765262405697, "to": "VRSB"}, {"from": "GCHE", "title": 1.3416627650214084, "to": "VTBR"}, {"from": "GCHE", "title": 1.610390092156343, "to": "YAKG"}, {"from": "GCHE", "title": 1.102156939295878, "to": "YNDX"}, {"from": "GMKN", "title": 1.5620594482765273, "to": "HYDR"}, {"from": "GMKN", "title": 1.6385166442197172, "to": "INGR"}, {"from": "GMKN", "title": 1.4772112997422422, "to": "IRAO"}, {"from": "GMKN", "title": 1.4891757521294757, "to": "KAZT"}, {"from": "GMKN", "title": 0.8031019756861562, "to": "LKOH"}, {"from": "GMKN", "title": 1.4295688172010468, "to": "MAGN"}, {"from": "GMKN", "title": 1.489614019820716, "to": "MGNT"}, {"from": "GMKN", "title": 1.6366492647912438, "to": "MRKK"}, {"from": "GMKN", "title": 1.2544030456087345, "to": "MTSS"}, {"from": "GMKN", "title": 1.3276818678560367, "to": "NLMK"}, {"from": "GMKN", "title": 1.7795400435601871, "to": "NVTK"}, {"from": "GMKN", "title": 1.1922180605723558, "to": "PHOR"}, {"from": "GMKN", "title": 1.559925187589448, "to": "PIKK"}, {"from": "GMKN", "title": 1.1426543299422607, "to": "PLZL"}, {"from": "GMKN", "title": 1.659500740397664, "to": "PMSB"}, {"from": "GMKN", "title": 1.0304582037532724, "to": "POLY"}, {"from": "GMKN", "title": 1.3671523008132207, "to": "QIWIDR"}, {"from": "GMKN", "title": 1.4770109201416712, "to": "ROSN"}, {"from": "GMKN", "title": 1.8415840757273183, "to": "RTKM"}, {"from": "GMKN", "title": 0.9639360082347507, "to": "RUAL"}, {"from": "GMKN", "title": 1.329586977783221, "to": "RUGR"}, {"from": "GMKN", "title": 1.4785554956667117, "to": "SBER"}, {"from": "GMKN", "title": 1.439719327101338, "to": "SFIN"}, {"from": "GMKN", "title": 1.0585824300068847, "to": "SNGS"}, {"from": "GMKN", "title": 1.194107258936248, "to": "TATN"}, {"from": "GMKN", "title": 1.3511946090350242, "to": "TGKB"}, {"from": "GMKN", "title": 1.010025428508407, "to": "UTAR"}, {"from": "GMKN", "title": 1.4849706848761821, "to": "VRSB"}, {"from": "GMKN", "title": 1.4545605928880412, "to": "VTBR"}, {"from": "GMKN", "title": 0.9955906604534858, "to": "YAKG"}, {"from": "GMKN", "title": 1.3103683491650238, "to": "YNDX"}, {"from": "HYDR", "title": 1.2357264345000372, "to": "INGR"}, {"from": "HYDR", "title": 0.8539812500651774, "to": "IRAO"}, {"from": "HYDR", "title": 1.2587424325511858, "to": "KAZT"}, {"from": "HYDR", "title": 1.5421153620331916, "to": "LKOH"}, {"from": "HYDR", "title": 0.8736758627330534, "to": "MAGN"}, {"from": "HYDR", "title": 0.928326263818509, "to": "MGNT"}, {"from": "HYDR", "title": 0.6777259637112637, "to": "MRKK"}, {"from": "HYDR", "title": 0.8474159855530119, "to": "MTSS"}, {"from": "HYDR", "title": 1.0967803404958076, "to": "NLMK"}, {"from": "HYDR", "title": 1.0025601784785412, "to": "NVTK"}, {"from": "HYDR", "title": 1.3495604185329813, "to": "PHOR"}, {"from": "HYDR", "title": 1.3835054738836399, "to": "PIKK"}, {"from": "HYDR", "title": 1.4594972620840683, "to": "PLZL"}, {"from": "HYDR", "title": 1.4151518498015205, "to": "PMSB"}, {"from": "HYDR", "title": 1.4767097851555564, "to": "POLY"}, {"from": "HYDR", "title": 1.0738850023060136, "to": "QIWIDR"}, {"from": "HYDR", "title": 1.3173252486373106, "to": "ROSN"}, {"from": "HYDR", "title": 1.0679304623939216, "to": "RTKM"}, {"from": "HYDR", "title": 1.5136738555330742, "to": "RUAL"}, {"from": "HYDR", "title": 1.2648805922231432, "to": "RUGR"}, {"from": "HYDR", "title": 0.8771231140134154, "to": "SBER"}, {"from": "HYDR", "title": 1.3114525948310911, "to": "SFIN"}, {"from": "HYDR", "title": 1.5318875365437161, "to": "SNGS"}, {"from": "HYDR", "title": 0.981811811677495, "to": "TATN"}, {"from": "HYDR", "title": 1.017050093546998, "to": "TGKB"}, {"from": "HYDR", "title": 1.3752676971063462, "to": "UTAR"}, {"from": "HYDR", "title": 1.170201072212537, "to": "VRSB"}, {"from": "HYDR", "title": 0.9993513416927905, "to": "VTBR"}, {"from": "HYDR", "title": 1.6498636208130903, "to": "YAKG"}, {"from": "HYDR", "title": 0.9780880393073942, "to": "YNDX"}, {"from": "INGR", "title": 1.3326148468350403, "to": "IRAO"}, {"from": "INGR", "title": 0.8461992979365626, "to": "KAZT"}, {"from": "INGR", "title": 1.6420484878016672, "to": "LKOH"}, {"from": "INGR", "title": 1.4021624220884412, "to": "MAGN"}, {"from": "INGR", "title": 1.5118152211778713, "to": "MGNT"}, {"from": "INGR", "title": 1.134856662374839, "to": "MRKK"}, {"from": "INGR", "title": 1.3799286044839292, "to": "MTSS"}, {"from": "INGR", "title": 1.4641476760090189, "to": "NLMK"}, {"from": "INGR", "title": 1.1319784175974865, "to": "NVTK"}, {"from": "INGR", "title": 1.5869752496536351, "to": "PHOR"}, {"from": "INGR", "title": 1.1807686350281177, "to": "PIKK"}, {"from": "INGR", "title": 1.4860984870765102, "to": "PLZL"}, {"from": "INGR", "title": 1.2205108393986939, "to": "PMSB"}, {"from": "INGR", "title": 1.5997708596347295, "to": "POLY"}, {"from": "INGR", "title": 1.3950072535886016, "to": "QIWIDR"}, {"from": "INGR", "title": 0.7632090976481672, "to": "ROSN"}, {"from": "INGR", "title": 1.2609351235884867, "to": "RTKM"}, {"from": "INGR", "title": 1.6477114811915063, "to": "RUAL"}, {"from": "INGR", "title": 1.4782492892386825, "to": "RUGR"}, {"from": "INGR", "title": 1.1285764418255002, "to": "SBER"}, {"from": "INGR", "title": 1.6945578168686108, "to": "SFIN"}, {"from": "INGR", "title": 1.3519904705114516, "to": "SNGS"}, {"from": "INGR", "title": 1.5408842257726016, "to": "TATN"}, {"from": "INGR", "title": 0.9757420619302474, "to": "TGKB"}, {"from": "INGR", "title": 1.540945743759893, "to": "UTAR"}, {"from": "INGR", "title": 1.6582323976729236, "to": "VRSB"}, {"from": "INGR", "title": 1.3503849535579686, "to": "VTBR"}, {"from": "INGR", "title": 1.475917282651938, "to": "YAKG"}, {"from": "INGR", "title": 1.5864953434038178, "to": "YNDX"}, {"from": "IRAO", "title": 1.5614117327893884, "to": "KAZT"}, {"from": "IRAO", "title": 1.5090430283776393, "to": "LKOH"}, {"from": "IRAO", "title": 0.9783397253720633, "to": "MAGN"}, {"from": "IRAO", "title": 1.0843954688521205, "to": "MGNT"}, {"from": "IRAO", "title": 0.7694164677533832, "to": "MRKK"}, {"from": "IRAO", "title": 0.8544104926251138, "to": "MTSS"}, {"from": "IRAO", "title": 1.310362007476732, "to": "NLMK"}, {"from": "IRAO", "title": 1.0328104345221487, "to": "NVTK"}, {"from": "IRAO", "title": 1.155318725376053, "to": "PHOR"}, {"from": "IRAO", "title": 1.470382622368731, "to": "PIKK"}, {"from": "IRAO", "title": 1.2907250404467794, "to": "PLZL"}, {"from": "IRAO", "title": 1.6069761407616818, "to": "PMSB"}, {"from": "IRAO", "title": 1.257824275823115, "to": "POLY"}, {"from": "IRAO", "title": 1.1478632939556945, "to": "QIWIDR"}, {"from": "IRAO", "title": 1.3518628986783032, "to": "ROSN"}, {"from": "IRAO", "title": 1.2315677371606546, "to": "RTKM"}, {"from": "IRAO", "title": 1.3356397358766197, "to": "RUAL"}, {"from": "IRAO", "title": 1.1768385583795937, "to": "RUGR"}, {"from": "IRAO", "title": 1.1871940096862637, "to": "SBER"}, {"from": "IRAO", "title": 1.155809350980845, "to": "SFIN"}, {"from": "IRAO", "title": 1.1871981069257316, "to": "SNGS"}, {"from": "IRAO", "title": 1.105814593108903, "to": "TATN"}, {"from": "IRAO", "title": 1.1193552646545517, "to": "TGKB"}, {"from": "IRAO", "title": 1.2504057101975594, "to": "UTAR"}, {"from": "IRAO", "title": 1.2299266484151032, "to": "VRSB"}, {"from": "IRAO", "title": 0.7671571322105588, "to": "VTBR"}, {"from": "IRAO", "title": 1.2970553208291162, "to": "YAKG"}, {"from": "IRAO", "title": 1.387227911731461, "to": "YNDX"}, {"from": "KAZT", "title": 1.5709798053234287, "to": "LKOH"}, {"from": "KAZT", "title": 1.531237927524927, "to": "MAGN"}, {"from": "KAZT", "title": 1.4289018199779207, "to": "MGNT"}, {"from": "KAZT", "title": 1.3483932176703133, "to": "MRKK"}, {"from": "KAZT", "title": 1.4735129595237315, "to": "MTSS"}, {"from": "KAZT", "title": 1.5267537951530765, "to": "NLMK"}, {"from": "KAZT", "title": 1.4229825383430261, "to": "NVTK"}, {"from": "KAZT", "title": 1.6643735137193443, "to": "PHOR"}, {"from": "KAZT", "title": 1.1699402703271278, "to": "PIKK"}, {"from": "KAZT", "title": 1.4102874186808299, "to": "PLZL"}, {"from": "KAZT", "title": 1.2409165264107607, "to": "PMSB"}, {"from": "KAZT", "title": 1.6114164997859919, "to": "POLY"}, {"from": "KAZT", "title": 1.4340933700092742, "to": "QIWIDR"}, {"from": "KAZT", "title": 1.0185939140930376, "to": "ROSN"}, {"from": "KAZT", "title": 1.24869204515752, "to": "RTKM"}, {"from": "KAZT", "title": 1.4167044090012384, "to": "RUAL"}, {"from": "KAZT", "title": 1.354056741137552, "to": "RUGR"}, {"from": "KAZT", "title": 1.2446057757680988, "to": "SBER"}, {"from": "KAZT", "title": 1.7420928329083452, "to": "SFIN"}, {"from": "KAZT", "title": 1.540003112833731, "to": "SNGS"}, {"from": "KAZT", "title": 1.518825852500947, "to": "TATN"}, {"from": "KAZT", "title": 1.0485030964071944, "to": "TGKB"}, {"from": "KAZT", "title": 1.4452104549983158, "to": "UTAR"}, {"from": "KAZT", "title": 1.4861002760728337, "to": "VRSB"}, {"from": "KAZT", "title": 1.4363094699146992, "to": "VTBR"}, {"from": "KAZT", "title": 1.6554217894141607, "to": "YAKG"}, {"from": "KAZT", "title": 1.288055733558427, "to": "YNDX"}, {"from": "LKOH", "title": 1.2345152957032155, "to": "MAGN"}, {"from": "LKOH", "title": 1.5270548936294188, "to": "MGNT"}, {"from": "LKOH", "title": 1.662947299531387, "to": "MRKK"}, {"from": "LKOH", "title": 1.1535139292055714, "to": "MTSS"}, {"from": "LKOH", "title": 1.093073365572588, "to": "NLMK"}, {"from": "LKOH", "title": 1.8277826089028784, "to": "NVTK"}, {"from": "LKOH", "title": 1.406915041513646, "to": "PHOR"}, {"from": "LKOH", "title": 1.7362456030547229, "to": "PIKK"}, {"from": "LKOH", "title": 1.3961255961087344, "to": "PLZL"}, {"from": "LKOH", "title": 1.528373635816245, "to": "PMSB"}, {"from": "LKOH", "title": 1.2669262532678585, "to": "POLY"}, {"from": "LKOH", "title": 1.5632912510312889, "to": "QIWIDR"}, {"from": "LKOH", "title": 1.4347384386979607, "to": "ROSN"}, {"from": "LKOH", "title": 1.8537406116148756, "to": "RTKM"}, {"from": "LKOH", "title": 1.0612779290886514, "to": "RUAL"}, {"from": "LKOH", "title": 1.2346322436169785, "to": "RUGR"}, {"from": "LKOH", "title": 1.311270341630952, "to": "SBER"}, {"from": "LKOH", "title": 1.5642034311628998, "to": "SFIN"}, {"from": "LKOH", "title": 1.2844331451650517, "to": "SNGS"}, {"from": "LKOH", "title": 1.1615955254996926, "to": "TATN"}, {"from": "LKOH", "title": 1.349339072947499, "to": "TGKB"}, {"from": "LKOH", "title": 0.9690089269675558, "to": "UTAR"}, {"from": "LKOH", "title": 1.2723197929937178, "to": "VRSB"}, {"from": "LKOH", "title": 1.4102854221804357, "to": "VTBR"}, {"from": "LKOH", "title": 1.2077637490919948, "to": "YAKG"}, {"from": "LKOH", "title": 1.2339380052662565, "to": "YNDX"}, {"from": "MAGN", "title": 1.127796271922226, "to": "MGNT"}, {"from": "MAGN", "title": 1.0216299870304806, "to": "MRKK"}, {"from": "MAGN", "title": 0.8110145380623401, "to": "MTSS"}, {"from": "MAGN", "title": 0.6473559504060763, "to": "NLMK"}, {"from": "MAGN", "title": 1.282021308257253, "to": "NVTK"}, {"from": "MAGN", "title": 1.4456962291140627, "to": "PHOR"}, {"from": "MAGN", "title": 1.3856885405003825, "to": "PIKK"}, {"from": "MAGN", "title": 1.5491493969588077, "to": "PLZL"}, {"from": "MAGN", "title": 1.325650740094574, "to": "PMSB"}, {"from": "MAGN", "title": 1.4792242450141768, "to": "POLY"}, {"from": "MAGN", "title": 1.285801375038952, "to": "QIWIDR"}, {"from": "MAGN", "title": 1.2629897267772852, "to": "ROSN"}, {"from": "MAGN", "title": 1.3702782900740498, "to": "RTKM"}, {"from": "MAGN", "title": 1.5259274197379609, "to": "RUAL"}, {"from": "MAGN", "title": 1.1412896134061021, "to": "RUGR"}, {"from": "MAGN", "title": 0.9172072040526543, "to": "SBER"}, {"from": "MAGN", "title": 1.3117430214553667, "to": "SFIN"}, {"from": "MAGN", "title": 1.4569649436831242, "to": "SNGS"}, {"from": "MAGN", "title": 1.0947346171363517, "to": "TATN"}, {"from": "MAGN", "title": 1.1470878792434716, "to": "TGKB"}, {"from": "MAGN", "title": 1.3841543563197016, "to": "UTAR"}, {"from": "MAGN", "title": 1.094830665197575, "to": "VRSB"}, {"from": "MAGN", "title": 1.0869591973063393, "to": "VTBR"}, {"from": "MAGN", "title": 1.4651216531611635, "to": "YAKG"}, {"from": "MAGN", "title": 0.9804967974219571, "to": "YNDX"}, {"from": "MGNT", "title": 1.103462048647181, "to": "MRKK"}, {"from": "MGNT", "title": 1.064784923585946, "to": "MTSS"}, {"from": "MGNT", "title": 1.4362686185138591, "to": "NLMK"}, {"from": "MGNT", "title": 1.1059881721947245, "to": "NVTK"}, {"from": "MGNT", "title": 1.200211606247687, "to": "PHOR"}, {"from": "MGNT", "title": 1.3509667294266885, "to": "PIKK"}, {"from": "MGNT", "title": 1.2375460306044297, "to": "PLZL"}, {"from": "MGNT", "title": 1.5646134292409646, "to": "PMSB"}, {"from": "MGNT", "title": 1.31231034964008, "to": "POLY"}, {"from": "MGNT", "title": 1.0499046119656905, "to": "QIWIDR"}, {"from": "MGNT", "title": 1.5041444038314349, "to": "ROSN"}, {"from": "MGNT", "title": 1.1886520594518963, "to": "RTKM"}, {"from": "MGNT", "title": 1.2595084775614747, "to": "RUAL"}, {"from": "MGNT", "title": 1.1316421508572472, "to": "RUGR"}, {"from": "MGNT", "title": 1.158881923163584, "to": "SBER"}, {"from": "MGNT", "title": 1.0795325331302785, "to": "SFIN"}, {"from": "MGNT", "title": 1.3468229662017246, "to": "SNGS"}, {"from": "MGNT", "title": 0.9304932642733639, "to": "TATN"}, {"from": "MGNT", "title": 1.0793407610857642, "to": "TGKB"}, {"from": "MGNT", "title": 1.1644196654805175, "to": "UTAR"}, {"from": "MGNT", "title": 1.1803832916615582, "to": "VRSB"}, {"from": "MGNT", "title": 0.9421820765028546, "to": "VTBR"}, {"from": "MGNT", "title": 1.465027564932963, "to": "YAKG"}, {"from": "MGNT", "title": 1.0967047436312292, "to": "YNDX"}, {"from": "MRKK", "title": 1.0243472403384024, "to": "MTSS"}, {"from": "MRKK", "title": 1.240325742729638, "to": "NLMK"}, {"from": "MRKK", "title": 0.7539618577134138, "to": "NVTK"}, {"from": "MRKK", "title": 1.2605961279797908, "to": "PHOR"}, {"from": "MRKK", "title": 1.2549697959327246, "to": "PIKK"}, {"from": "MRKK", "title": 1.491530452056468, "to": "PLZL"}, {"from": "MRKK", "title": 1.3619010917495773, "to": "PMSB"}, {"from": "MRKK", "title": 1.4719367518133235, "to": "POLY"}, {"from": "MRKK", "title": 1.1768676752657952, "to": "QIWIDR"}, {"from": "MRKK", "title": 1.2099694850237874, "to": "ROSN"}, {"from": "MRKK", "title": 1.0871230269994394, "to": "RTKM"}, {"from": "MRKK", "title": 1.623292058566816, "to": "RUAL"}, {"from": "MRKK", "title": 1.3698277380095423, "to": "RUGR"}, {"from": "MRKK", "title": 1.067976821279326, "to": "SBER"}, {"from": "MRKK", "title": 1.2454967876169944, "to": "SFIN"}, {"from": "MRKK", "title": 1.3830615670288278, "to": "SNGS"}, {"from": "MRKK", "title": 1.2069316630761515, "to": "TATN"}, {"from": "MRKK", "title": 1.140438922963379, "to": "TGKB"}, {"from": "MRKK", "title": 1.549458111907818, "to": "UTAR"}, {"from": "MRKK", "title": 1.348600012831995, "to": "VRSB"}, {"from": "MRKK", "title": 1.1382152354285298, "to": "VTBR"}, {"from": "MRKK", "title": 1.5029204769948599, "to": "YAKG"}, {"from": "MRKK", "title": 1.3006234902269895, "to": "YNDX"}, {"from": "MTSS", "title": 1.0607115767399398, "to": "NLMK"}, {"from": "MTSS", "title": 1.336595697916233, "to": "NVTK"}, {"from": "MTSS", "title": 1.1720491745116264, "to": "PHOR"}, {"from": "MTSS", "title": 1.6219670179970809, "to": "PIKK"}, {"from": "MTSS", "title": 1.340168079154009, "to": "PLZL"}, {"from": "MTSS", "title": 1.6190892894593694, "to": "PMSB"}, {"from": "MTSS", "title": 1.2260769726377214, "to": "POLY"}, {"from": "MTSS", "title": 1.1317530410199517, "to": "QIWIDR"}, {"from": "MTSS", "title": 1.2964413643007955, "to": "ROSN"}, {"from": "MTSS", "title": 1.5194527410944265, "to": "RTKM"}, {"from": "MTSS", "title": 1.3055509089856503, "to": "RUAL"}, {"from": "MTSS", "title": 1.1411390732052842, "to": "RUGR"}, {"from": "MTSS", "title": 0.8890304696700965, "to": "SBER"}, {"from": "MTSS", "title": 1.3067266043625698, "to": "SFIN"}, {"from": "MTSS", "title": 1.1785608830815393, "to": "SNGS"}, {"from": "MTSS", "title": 0.886544265291913, "to": "TATN"}, {"from": "MTSS", "title": 0.9565659997841185, "to": "TGKB"}, {"from": "MTSS", "title": 1.023420123758057, "to": "UTAR"}, {"from": "MTSS", "title": 1.2816071066009742, "to": "VRSB"}, {"from": "MTSS", "title": 0.8729621298168806, "to": "VTBR"}, {"from": "MTSS", "title": 1.2886360646291193, "to": "YAKG"}, {"from": "MTSS", "title": 1.1811329067563192, "to": "YNDX"}, {"from": "NLMK", "title": 1.4425580191943423, "to": "NVTK"}, {"from": "NLMK", "title": 1.504853335424395, "to": "PHOR"}, {"from": "NLMK", "title": 1.466652917616697, "to": "PIKK"}, {"from": "NLMK", "title": 1.690434485284242, "to": "PLZL"}, {"from": "NLMK", "title": 1.2437842681784397, "to": "PMSB"}, {"from": "NLMK", "title": 1.5721735469025453, "to": "POLY"}, {"from": "NLMK", "title": 1.438749606041685, "to": "QIWIDR"}, {"from": "NLMK", "title": 1.2705594825393258, "to": "ROSN"}, {"from": "NLMK", "title": 1.5285072579233836, "to": "RTKM"}, {"from": "NLMK", "title": 1.6332426364143255, "to": "RUAL"}, {"from": "NLMK", "title": 1.4636541650546546, "to": "RUGR"}, {"from": "NLMK", "title": 0.9701379098231085, "to": "SBER"}, {"from": "NLMK", "title": 1.497520930438906, "to": "SFIN"}, {"from": "NLMK", "title": 1.5779247936545824, "to": "SNGS"}, {"from": "NLMK", "title": 1.1848145869138298, "to": "TATN"}, {"from": "NLMK", "title": 1.3670196147752693, "to": "TGKB"}, {"from": "NLMK", "title": 1.518139643277088, "to": "UTAR"}, {"from": "NLMK", "title": 1.258238704218292, "to": "VRSB"}, {"from": "NLMK", "title": 1.4368472402913883, "to": "VTBR"}, {"from": "NLMK", "title": 1.507895423997309, "to": "YAKG"}, {"from": "NLMK", "title": 0.9889153456529641, "to": "YNDX"}, {"from": "NVTK", "title": 1.2959751324565414, "to": "PHOR"}, {"from": "NVTK", "title": 1.1164810505229976, "to": "PIKK"}, {"from": "NVTK", "title": 1.547763844183366, "to": "PLZL"}, {"from": "NVTK", "title": 1.2817470304405458, "to": "PMSB"}, {"from": "NVTK", "title": 1.5561491751442769, "to": "POLY"}, {"from": "NVTK", "title": 1.178482148195406, "to": "QIWIDR"}, {"from": "NVTK", "title": 1.1999913646649474, "to": "ROSN"}, {"from": "NVTK", "title": 0.9985911523571789, "to": "RTKM"}, {"from": "NVTK", "title": 1.69512071118323, "to": "RUAL"}, {"from": "NVTK", "title": 1.5541995122089558, "to": "RUGR"}, {"from": "NVTK", "title": 1.2082318147249047, "to": "SBER"}, {"from": "NVTK", "title": 1.1309373834158813, "to": "SFIN"}, {"from": "NVTK", "title": 1.367889036037784, "to": "SNGS"}, {"from": "NVTK", "title": 1.339914942675585, "to": "TATN"}, {"from": "NVTK", "title": 1.3058278821799723, "to": "TGKB"}, {"from": "NVTK", "title": 1.645621629155802, "to": "UTAR"}, {"from": "NVTK", "title": 1.512943004700803, "to": "VRSB"}, {"from": "NVTK", "title": 1.2531193907149458, "to": "VTBR"}, {"from": "NVTK", "title": 1.4543912030835582, "to": "YAKG"}, {"from": "NVTK", "title": 1.5310485860006808, "to": "YNDX"}, {"from": "PHOR", "title": 1.5289228703594482, "to": "PIKK"}, {"from": "PHOR", "title": 0.872567258696497, "to": "PLZL"}, {"from": "PHOR", "title": 1.8418222860984046, "to": "PMSB"}, {"from": "PHOR", "title": 0.6619974842360099, "to": "POLY"}, {"from": "PHOR", "title": 0.8553126555364688, "to": "QIWIDR"}, {"from": "PHOR", "title": 1.6140645058912222, "to": "ROSN"}, {"from": "PHOR", "title": 1.5269368038912865, "to": "RTKM"}, {"from": "PHOR", "title": 1.3290794028611077, "to": "RUAL"}, {"from": "PHOR", "title": 1.463074966840353, "to": "RUGR"}, {"from": "PHOR", "title": 1.5674440964400826, "to": "SBER"}, {"from": "PHOR", "title": 0.9372706879862917, "to": "SFIN"}, {"from": "PHOR", "title": 1.0164984820569802, "to": "SNGS"}, {"from": "PHOR", "title": 0.9946655202865946, "to": "TATN"}, {"from": "PHOR", "title": 1.5014856279224722, "to": "TGKB"}, {"from": "PHOR", "title": 1.1612697477621405, "to": "UTAR"}, {"from": "PHOR", "title": 1.585029678928881, "to": "VRSB"}, {"from": "PHOR", "title": 1.2594532185355432, "to": "VTBR"}, {"from": "PHOR", "title": 1.0772523290492708, "to": "YAKG"}, {"from": "PHOR", "title": 1.550094775544654, "to": "YNDX"}, {"from": "PIKK", "title": 1.4053180549429523, "to": "PLZL"}, {"from": "PIKK", "title": 1.0806721887203856, "to": "PMSB"}, {"from": "PIKK", "title": 1.5326070016194555, "to": "POLY"}, {"from": "PIKK", "title": 1.2374854438502987, "to": "QIWIDR"}, {"from": "PIKK", "title": 1.1737507822583455, "to": "ROSN"}, {"from": "PIKK", "title": 1.1029354400202034, "to": "RTKM"}, {"from": "PIKK", "title": 1.5713561766837356, "to": "RUAL"}, {"from": "PIKK", "title": 1.3424992608949287, "to": "RUGR"}, {"from": "PIKK", "title": 1.523698724060636, "to": "SBER"}, {"from": "PIKK", "title": 1.3059304121838742, "to": "SFIN"}, {"from": "PIKK", "title": 1.4699422952871617, "to": "SNGS"}, {"from": "PIKK", "title": 1.6423762125545445, "to": "TATN"}, {"from": "PIKK", "title": 1.4364685832106787, "to": "TGKB"}, {"from": "PIKK", "title": 1.7191658592673218, "to": "UTAR"}, {"from": "PIKK", "title": 1.499133332511915, "to": "VRSB"}, {"from": "PIKK", "title": 1.54093919282103, "to": "VTBR"}, {"from": "PIKK", "title": 1.466107268007235, "to": "YAKG"}, {"from": "PIKK", "title": 1.3434864211260937, "to": "YNDX"}, {"from": "PLZL", "title": 1.8700764189708483, "to": "PMSB"}, {"from": "PLZL", "title": 0.4997753231828717, "to": "POLY"}, {"from": "PLZL", "title": 0.8502576227277792, "to": "QIWIDR"}, {"from": "PLZL", "title": 1.6322751192435248, "to": "ROSN"}, {"from": "PLZL", "title": 1.4400159510782173, "to": "RTKM"}, {"from": "PLZL", "title": 1.0103948605929083, "to": "RUAL"}, {"from": "PLZL", "title": 1.108834816974251, "to": "RUGR"}, {"from": "PLZL", "title": 1.7292944079207242, "to": "SBER"}, {"from": "PLZL", "title": 1.1897159710895933, "to": "SFIN"}, {"from": "PLZL", "title": 1.174503179394768, "to": "SNGS"}, {"from": "PLZL", "title": 1.1913058979398936, "to": "TATN"}, {"from": "PLZL", "title": 1.3925736893736316, "to": "TGKB"}, {"from": "PLZL", "title": 0.974414652406056, "to": "UTAR"}, {"from": "PLZL", "title": 1.4183445127602006, "to": "VRSB"}, {"from": "PLZL", "title": 1.139791486431531, "to": "VTBR"}, {"from": "PLZL", "title": 1.291857037743576, "to": "YAKG"}, {"from": "PLZL", "title": 1.4920902233550948, "to": "YNDX"}, {"from": "PMSB", "title": 1.8951284868925107, "to": "POLY"}, {"from": "PMSB", "title": 1.7175897948238323, "to": "QIWIDR"}, {"from": "PMSB", "title": 1.113941585015066, "to": "ROSN"}, {"from": "PMSB", "title": 1.1983896423859437, "to": "RTKM"}, {"from": "PMSB", "title": 1.7045093399053506, "to": "RUAL"}, {"from": "PMSB", "title": 1.510128010573359, "to": "RUGR"}, {"from": "PMSB", "title": 1.247469857607241, "to": "SBER"}, {"from": "PMSB", "title": 1.5645304682545724, "to": "SFIN"}, {"from": "PMSB", "title": 1.6886359880070885, "to": "SNGS"}, {"from": "PMSB", "title": 1.712142741473924, "to": "TATN"}, {"from": "PMSB", "title": 1.482276791122083, "to": "TGKB"}, {"from": "PMSB", "title": 1.7656940096965397, "to": "UTAR"}, {"from": "PMSB", "title": 1.3968448934472968, "to": "VRSB"}, {"from": "PMSB", "title": 1.7017035453006917, "to": "VTBR"}, {"from": "PMSB", "title": 1.6191996106050097, "to": "YAKG"}, {"from": "PMSB", "title": 1.2937391448598157, "to": "YNDX"}, {"from": "POLY", "title": 0.846097984492916, "to": "QIWIDR"}, {"from": "POLY", "title": 1.6791148436713526, "to": "ROSN"}, {"from": "POLY", "title": 1.5660753497478157, "to": "RTKM"}, {"from": "POLY", "title": 1.108334843320658, "to": "RUAL"}, {"from": "POLY", "title": 1.2081883757104104, "to": "RUGR"}, {"from": "POLY", "title": 1.700212850440225, "to": "SBER"}, {"from": "POLY", "title": 1.0747039126826443, "to": "SFIN"}, {"from": "POLY", "title": 1.1119681436794413, "to": "SNGS"}, {"from": "POLY", "title": 1.0962961544086065, "to": "TATN"}, {"from": "POLY", "title": 1.4881798173328626, "to": "TGKB"}, {"from": "POLY", "title": 1.0294459573574637, "to": "UTAR"}, {"from": "POLY", "title": 1.4580556056444522, "to": "VRSB"}, {"from": "POLY", "title": 1.2538647196239971, "to": "VTBR"}, {"from": "POLY", "title": 1.1629334211644902, "to": "YAKG"}, {"from": "POLY", "title": 1.5167726247574789, "to": "YNDX"}, {"from": "QIWIDR", "title": 1.5115280914947506, "to": "ROSN"}, {"from": "QIWIDR", "title": 1.198609655707998, "to": "RTKM"}, {"from": "QIWIDR", "title": 1.4189912666718278, "to": "RUAL"}, {"from": "QIWIDR", "title": 1.302954769875702, "to": "RUGR"}, {"from": "QIWIDR", "title": 1.4566002833476592, "to": "SBER"}, {"from": "QIWIDR", "title": 0.97515159570454, "to": "SFIN"}, {"from": "QIWIDR", "title": 1.2927158493840905, "to": "SNGS"}, {"from": "QIWIDR", "title": 1.0388577797675171, "to": "TATN"}, {"from": "QIWIDR", "title": 1.3634319408335371, "to": "TGKB"}, {"from": "QIWIDR", "title": 1.2599494391809338, "to": "UTAR"}, {"from": "QIWIDR", "title": 1.5074081910166213, "to": "VRSB"}, {"from": "QIWIDR", "title": 1.1794296493171863, "to": "VTBR"}, {"from": "QIWIDR", "title": 1.3982227260661273, "to": "YAKG"}, {"from": "QIWIDR", "title": 1.2814175049485368, "to": "YNDX"}, {"from": "ROSN", "title": 1.5166630276528135, "to": "RTKM"}, {"from": "ROSN", "title": 1.5606054618847105, "to": "RUAL"}, {"from": "ROSN", "title": 1.4833263194932051, "to": "RUGR"}, {"from": "ROSN", "title": 0.9671853427136891, "to": "SBER"}, {"from": "ROSN", "title": 1.6370073567320347, "to": "SFIN"}, {"from": "ROSN", "title": 1.1908559249953845, "to": "SNGS"}, {"from": "ROSN", "title": 1.4986717385164003, "to": "TATN"}, {"from": "ROSN", "title": 0.9625863856565167, "to": "TGKB"}, {"from": "ROSN", "title": 1.4756731088775834, "to": "UTAR"}, {"from": "ROSN", "title": 1.646136246372776, "to": "VRSB"}, {"from": "ROSN", "title": 1.3983577869588217, "to": "VTBR"}, {"from": "ROSN", "title": 1.2623213800318152, "to": "YAKG"}, {"from": "ROSN", "title": 1.510705114232769, "to": "YNDX"}, {"from": "RTKM", "title": 1.6073027786078788, "to": "RUAL"}, {"from": "RTKM", "title": 1.3194891551060492, "to": "RUGR"}, {"from": "RTKM", "title": 1.4561431071012527, "to": "SBER"}, {"from": "RTKM", "title": 1.2539928417531567, "to": "SFIN"}, {"from": "RTKM", "title": 1.7550572863136447, "to": "SNGS"}, {"from": "RTKM", "title": 1.5034159186116904, "to": "TATN"}, {"from": "RTKM", "title": 1.484135673882407, "to": "TGKB"}, {"from": "RTKM", "title": 1.6780496196639823, "to": "UTAR"}, {"from": "RTKM", "title": 1.2231099430989436, "to": "VRSB"}, {"from": "RTKM", "title": 1.3197717563654463, "to": "VTBR"}, {"from": "RTKM", "title": 1.8115947626302191, "to": "YAKG"}, {"from": "RTKM", "title": 1.2560293521632762, "to": "YNDX"}, {"from": "RUAL", "title": 1.0045602893653227, "to": "RUGR"}, {"from": "RUAL", "title": 1.566033674968169, "to": "SBER"}, {"from": "RUAL", "title": 1.4241386286052027, "to": "SFIN"}, {"from": "RUAL", "title": 1.191822894912414, "to": "SNGS"}, {"from": "RUAL", "title": 1.2097176021841176, "to": "TATN"}, {"from": "RUAL", "title": 1.2332778499068466, "to": "TGKB"}, {"from": "RUAL", "title": 0.7214977833196787, "to": "UTAR"}, {"from": "RUAL", "title": 1.1085703203887933, "to": "VRSB"}, {"from": "RUAL", "title": 1.084098657304062, "to": "VTBR"}, {"from": "RUAL", "title": 1.2665524201819103, "to": "YAKG"}, {"from": "RUAL", "title": 1.3500920627941697, "to": "YNDX"}, {"from": "RUGR", "title": 1.4707202396595644, "to": "SBER"}, {"from": "RUGR", "title": 1.2922156978244081, "to": "SFIN"}, {"from": "RUGR", "title": 1.4241171769632475, "to": "SNGS"}, {"from": "RUGR", "title": 1.3316343449964905, "to": "TATN"}, {"from": "RUGR", "title": 1.2128064321368761, "to": "TGKB"}, {"from": "RUGR", "title": 1.13051037859403, "to": "UTAR"}, {"from": "RUGR", "title": 0.9030567104361269, "to": "VRSB"}, {"from": "RUGR", "title": 1.0391004192378273, "to": "VTBR"}, {"from": "RUGR", "title": 1.4917886689625863, "to": "YAKG"}, {"from": "RUGR", "title": 1.1486682327426918, "to": "YNDX"}, {"from": "SBER", "title": 1.5812702565652168, "to": "SFIN"}, {"from": "SBER", "title": 1.3482949007704863, "to": "SNGS"}, {"from": "SBER", "title": 1.0994782552449744, "to": "TATN"}, {"from": "SBER", "title": 0.788108825359908, "to": "TGKB"}, {"from": "SBER", "title": 1.3573606697994756, "to": "UTAR"}, {"from": "SBER", "title": 1.4046012283187301, "to": "VRSB"}, {"from": "SBER", "title": 1.1544287147539274, "to": "VTBR"}, {"from": "SBER", "title": 1.4250137490182853, "to": "YAKG"}, {"from": "SBER", "title": 1.1365375255623404, "to": "YNDX"}, {"from": "SFIN", "title": 1.2475824729679126, "to": "SNGS"}, {"from": "SFIN", "title": 1.3388865201343556, "to": "TATN"}, {"from": "SFIN", "title": 1.5932391258096894, "to": "TGKB"}, {"from": "SFIN", "title": 1.405952835211208, "to": "UTAR"}, {"from": "SFIN", "title": 1.4305630792348571, "to": "VRSB"}, {"from": "SFIN", "title": 1.289957946237215, "to": "VTBR"}, {"from": "SFIN", "title": 1.2246528908658216, "to": "YAKG"}, {"from": "SFIN", "title": 1.4237058661904654, "to": "YNDX"}, {"from": "SNGS", "title": 1.3037894685583635, "to": "TATN"}, {"from": "SNGS", "title": 1.1468224125424276, "to": "TGKB"}, {"from": "SNGS", "title": 1.0406067411614475, "to": "UTAR"}, {"from": "SNGS", "title": 1.7075370544627635, "to": "VRSB"}, {"from": "SNGS", "title": 1.1479125045953928, "to": "VTBR"}, {"from": "SNGS", "title": 0.40507235809088854, "to": "YAKG"}, {"from": "SNGS", "title": 1.6852269622299239, "to": "YNDX"}, {"from": "TATN", "title": 1.1433323358996352, "to": "TGKB"}, {"from": "TATN", "title": 1.0210861652954322, "to": "UTAR"}, {"from": "TATN", "title": 1.2242082863951025, "to": "VRSB"}, {"from": "TATN", "title": 1.0467880580153877, "to": "VTBR"}, {"from": "TATN", "title": 1.4152308359768753, "to": "YAKG"}, {"from": "TATN", "title": 1.1298435022981572, "to": "YNDX"}, {"from": "TGKB", "title": 1.099821335773311, "to": "UTAR"}, {"from": "TGKB", "title": 1.3921957385702524, "to": "VRSB"}, {"from": "TGKB", "title": 0.893671415413103, "to": "VTBR"}, {"from": "TGKB", "title": 1.3397099781357882, "to": "YAKG"}, {"from": "TGKB", "title": 1.3213083057848831, "to": "YNDX"}, {"from": "UTAR", "title": 1.3045570197194456, "to": "VRSB"}, {"from": "UTAR", "title": 0.9348422540248558, "to": "VTBR"}, {"from": "UTAR", "title": 1.170209212717124, "to": "YAKG"}, {"from": "UTAR", "title": 1.3870203498519131, "to": "YNDX"}, {"from": "VRSB", "title": 1.1268106982817074, "to": "VTBR"}, {"from": "VRSB", "title": 1.7311831136115368, "to": "YAKG"}, {"from": "VRSB", "title": 0.942355499772085, "to": "YNDX"}, {"from": "VTBR", "title": 1.3499620922560767, "to": "YAKG"}, {"from": "VTBR", "title": 1.3417186482590764, "to": "YNDX"}, {"from": "YAKG", "title": 1.6911016543949744, "to": "YNDX"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

@@ -1,0 +1,349 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1300px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "ADRJ", "label": "ADRJ", "shape": "dot", "title": "ADRJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IMPJ", "label": "IMPJ", "shape": "dot", "title": "IMPJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "APNJ", "label": "APNJ", "shape": "dot", "title": "APNJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RNIJ", "label": "RNIJ", "shape": "dot", "title": "RNIJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AMSJ", "label": "AMSJ", "shape": "dot", "title": "AMSJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MTAJ", "label": "MTAJ", "shape": "dot", "title": "MTAJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LSKJ", "label": "LSKJ", "shape": "dot", "title": "LSKJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TBSJ", "label": "TBSJ", "shape": "dot", "title": "TBSJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RMHJ", "label": "RMHJ", "shape": "dot", "title": "RMHJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BTIJ", "label": "BTIJ", "shape": "dot", "title": "BTIJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ABGJ", "label": "ABGJ", "shape": "dot", "title": "ABGJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DSYJ", "label": "DSYJ", "shape": "dot", "title": "DSYJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PANJ", "label": "PANJ", "shape": "dot", "title": "PANJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SHCJ", "label": "SHCJ", "shape": "dot", "title": "SHCJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VODJ", "label": "VODJ", "shape": "dot", "title": "VODJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NEDJ", "label": "NEDJ", "shape": "dot", "title": "NEDJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GFIJ", "label": "GFIJ", "shape": "dot", "title": "GFIJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RBXJ", "label": "RBXJ", "shape": "dot", "title": "RBXJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SOLJ", "label": "SOLJ", "shape": "dot", "title": "SOLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FSRJ", "label": "FSRJ", "shape": "dot", "title": "FSRJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SLMJ", "label": "SLMJ", "shape": "dot", "title": "SLMJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SNTJ", "label": "SNTJ", "shape": "dot", "title": "SNTJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ANGJ", "label": "ANGJ", "shape": "dot", "title": "ANGJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BVTJ", "label": "BVTJ", "shape": "dot", "title": "BVTJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WHLJ", "label": "WHLJ", "shape": "dot", "title": "WHLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TRUJ", "label": "TRUJ", "shape": "dot", "title": "TRUJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AGLJ", "label": "AGLJ", "shape": "dot", "title": "AGLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NPNJn", "label": "NPNJn", "shape": "dot", "title": "NPNJn"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MNPJ", "label": "MNPJ", "shape": "dot", "title": "MNPJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SHPJ", "label": "SHPJ", "shape": "dot", "title": "SHPJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BATJ", "label": "BATJ", "shape": "dot", "title": "BATJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GMLJ", "label": "GMLJ", "shape": "dot", "title": "GMLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SNHJ", "label": "SNHJ", "shape": "dot", "title": "SNHJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ARIJ", "label": "ARIJ", "shape": "dot", "title": "ARIJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HLMJ", "label": "HLMJ", "shape": "dot", "title": "HLMJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CFRJ", "label": "CFRJ", "shape": "dot", "title": "CFRJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "OMUJ", "label": "OMUJ", "shape": "dot", "title": "OMUJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GRTJ", "label": "GRTJ", "shape": "dot", "title": "GRTJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ZEDJ", "label": "ZEDJ", "shape": "dot", "title": "ZEDJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "REMJ", "label": "REMJ", "shape": "dot", "title": "REMJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MTNJ", "label": "MTNJ", "shape": "dot", "title": "MTNJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SBKJ", "label": "SBKJ", "shape": "dot", "title": "SBKJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "INLJ", "label": "INLJ", "shape": "dot", "title": "INLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "INPJ", "label": "INPJ", "shape": "dot", "title": "INPJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EXXJ", "label": "EXXJ", "shape": "dot", "title": "EXXJ"}]);
+                  edges = new vis.DataSet([{"from": "ADRJ", "title": 1.92094032145133, "to": "IMPJ"}, {"from": "ADRJ", "title": 1.8146246147164933, "to": "RNIJ"}, {"from": "ADRJ", "title": 1.903452883767579, "to": "AMSJ"}, {"from": "ADRJ", "title": 1.8590858212824424, "to": "BTIJ"}, {"from": "ADRJ", "title": 1.7986923302704787, "to": "SHCJ"}, {"from": "ADRJ", "title": 0.8467463358765716, "to": "VODJ"}, {"from": "ADRJ", "title": 1.2556513210835787, "to": "WHLJ"}, {"from": "ADRJ", "title": 0.7236189302029259, "to": "TRUJ"}, {"from": "ADRJ", "title": 1.8108046857684128, "to": "AGLJ"}, {"from": "ADRJ", "title": 1.731438402269962, "to": "MNPJ"}, {"from": "ADRJ", "title": 1.7585316321220057, "to": "GMLJ"}, {"from": "ADRJ", "title": 1.7827306868119246, "to": "SNHJ"}, {"from": "ADRJ", "title": 1.7798194456254302, "to": "ARIJ"}, {"from": "ADRJ", "title": 1.129232226778681, "to": "SBKJ"}, {"from": "ADRJ", "title": 1.6343310307317773, "to": "EXXJ"}, {"from": "IMPJ", "title": 0.6339070034745796, "to": "BTIJ"}, {"from": "IMPJ", "title": 1.7821871737313333, "to": "TRUJ"}, {"from": "APNJ", "title": 1.9037697418673558, "to": "RNIJ"}, {"from": "APNJ", "title": 1.8880542027912046, "to": "MTAJ"}, {"from": "APNJ", "title": 1.8055802137479036, "to": "BTIJ"}, {"from": "APNJ", "title": 1.7849205246556488, "to": "RBXJ"}, {"from": "APNJ", "title": 1.075004261352853, "to": "FSRJ"}, {"from": "APNJ", "title": 1.1759402121786455, "to": "TRUJ"}, {"from": "APNJ", "title": 0.8273527014323205, "to": "GRTJ"}, {"from": "RNIJ", "title": 0.8801698188903487, "to": "MTAJ"}, {"from": "RNIJ", "title": 1.860500961292067, "to": "RMHJ"}, {"from": "RNIJ", "title": 1.8474163560103487, "to": "ABGJ"}, {"from": "RNIJ", "title": 1.8404675627155713, "to": "DSYJ"}, {"from": "RNIJ", "title": 1.6583879108853012, "to": "PANJ"}, {"from": "RNIJ", "title": 1.8359005929720535, "to": "NEDJ"}, {"from": "RNIJ", "title": 1.833163060355703, "to": "FSRJ"}, {"from": "RNIJ", "title": 1.8305426806290102, "to": "SLMJ"}, {"from": "RNIJ", "title": 1.3827409774472332, "to": "MNPJ"}, {"from": "RNIJ", "title": 1.7553774378077978, "to": "GRTJ"}, {"from": "RNIJ", "title": 1.711858285840454, "to": "REMJ"}, {"from": "RNIJ", "title": 1.4303225249885294, "to": "MTNJ"}, {"from": "RNIJ", "title": 1.7053483038979385, "to": "SBKJ"}, {"from": "AMSJ", "title": 1.7441371560983032, "to": "VODJ"}, {"from": "AMSJ", "title": 0.9728713836192235, "to": "ANGJ"}, {"from": "AMSJ", "title": 1.717438452147651, "to": "WHLJ"}, {"from": "AMSJ", "title": 1.7703199314261593, "to": "TRUJ"}, {"from": "AMSJ", "title": 1.8002944554559501, "to": "SHPJ"}, {"from": "AMSJ", "title": 1.0234715651018127, "to": "GMLJ"}, {"from": "AMSJ", "title": 1.157712970537612, "to": "INPJ"}, {"from": "MTAJ", "title": 1.804130025232753, "to": "ABGJ"}, {"from": "MTAJ", "title": 1.8403833214874545, "to": "PANJ"}, {"from": "MTAJ", "title": 1.70723417708132, "to": "NEDJ"}, {"from": "MTAJ", "title": 0.9839931746941637, "to": "RBXJ"}, {"from": "MTAJ", "title": 1.7396185819596528, "to": "GRTJ"}, {"from": "MTAJ", "title": 1.724809649847653, "to": "REMJ"}, {"from": "LSKJ", "title": 1.8693637784220263, "to": "TBSJ"}, {"from": "LSKJ", "title": 1.2306178115522457, "to": "PANJ"}, {"from": "LSKJ", "title": 1.8138493410292733, "to": "SOLJ"}, {"from": "LSKJ", "title": 1.8058983667336543, "to": "SNTJ"}, {"from": "LSKJ", "title": 1.8093658946262272, "to": "NPNJn"}, {"from": "LSKJ", "title": 1.8055252709452478, "to": "BATJ"}, {"from": "LSKJ", "title": 1.7628527841052315, "to": "OMUJ"}, {"from": "LSKJ", "title": 1.7425522418529493, "to": "ZEDJ"}, {"from": "TBSJ", "title": 1.6975338705927432, "to": "GFIJ"}, {"from": "TBSJ", "title": 1.062934739504961, "to": "SNTJ"}, {"from": "TBSJ", "title": 1.0742240434274142, "to": "OMUJ"}, {"from": "RMHJ", "title": 1.780286758070971, "to": "BTIJ"}, {"from": "RMHJ", "title": 0.6115692595257756, "to": "DSYJ"}, {"from": "RMHJ", "title": 0.6194403437529376, "to": "SLMJ"}, {"from": "BTIJ", "title": 1.833883757758777, "to": "DSYJ"}, {"from": "BTIJ", "title": 1.7941771599182808, "to": "FSRJ"}, {"from": "BTIJ", "title": 1.8272488559999407, "to": "SLMJ"}, {"from": "BTIJ", "title": 1.813643949539683, "to": "TRUJ"}, {"from": "BTIJ", "title": 1.5288604134881807, "to": "SBKJ"}, {"from": "ABGJ", "title": 0.8480063287361501, "to": "GRTJ"}, {"from": "DSYJ", "title": 0.6045150266103545, "to": "FSRJ"}, {"from": "PANJ", "title": 1.1570551644816771, "to": "NEDJ"}, {"from": "PANJ", "title": 0.932288540022192, "to": "GFIJ"}, {"from": "PANJ", "title": 1.812146744298971, "to": "RBXJ"}, {"from": "PANJ", "title": 1.8351674689720074, "to": "SOLJ"}, {"from": "PANJ", "title": 1.7031266737892665, "to": "SNTJ"}, {"from": "PANJ", "title": 1.7412568442313436, "to": "NPNJn"}, {"from": "PANJ", "title": 1.008346421444189, "to": "MNPJ"}, {"from": "PANJ", "title": 1.7737597541384817, "to": "SHPJ"}, {"from": "PANJ", "title": 1.7219045357911527, "to": "MTNJ"}, {"from": "SHCJ", "title": 1.8368493985927214, "to": "VODJ"}, {"from": "SHCJ", "title": 1.8178993754422585, "to": "WHLJ"}, {"from": "SHCJ", "title": 1.2173495199100173, "to": "EXXJ"}, {"from": "VODJ", "title": 1.1261048248327545, "to": "WHLJ"}, {"from": "VODJ", "title": 1.7985812952191311, "to": "GMLJ"}, {"from": "VODJ", "title": 1.7982616042939947, "to": "SNHJ"}, {"from": "VODJ", "title": 1.7264172335627512, "to": "HLMJ"}, {"from": "VODJ", "title": 1.4992038564301267, "to": "INLJ"}, {"from": "VODJ", "title": 1.4888859017644518, "to": "INPJ"}, {"from": "NEDJ", "title": 0.788465513118217, "to": "REMJ"}, {"from": "GFIJ", "title": 1.8352760932853305, "to": "RBXJ"}, {"from": "GFIJ", "title": 1.7743225285710131, "to": "SOLJ"}, {"from": "GFIJ", "title": 1.82751441652678, "to": "SNTJ"}, {"from": "GFIJ", "title": 1.8043287919123443, "to": "BVTJ"}, {"from": "GFIJ", "title": 1.5418162426920072, "to": "BATJ"}, {"from": "GFIJ", "title": 0.6883002240238549, "to": "CFRJ"}, {"from": "GFIJ", "title": 1.655621048410699, "to": "OMUJ"}, {"from": "GFIJ", "title": 1.7246379672936818, "to": "ZEDJ"}, {"from": "RBXJ", "title": 1.7678738941756553, "to": "ANGJ"}, {"from": "RBXJ", "title": 1.0341364372284012, "to": "BVTJ"}, {"from": "RBXJ", "title": 1.541089238616659, "to": "TRUJ"}, {"from": "SOLJ", "title": 1.0632224284396958, "to": "BATJ"}, {"from": "SLMJ", "title": 1.0165352975279076, "to": "SBKJ"}, {"from": "SNTJ", "title": 1.8130687475001384, "to": "ANGJ"}, {"from": "SNTJ", "title": 0.9156255483959892, "to": "NPNJn"}, {"from": "SNTJ", "title": 0.9542496547820184, "to": "SHPJ"}, {"from": "SNTJ", "title": 1.772704591927021, "to": "CFRJ"}, {"from": "ANGJ", "title": 1.8250451677853154, "to": "BVTJ"}, {"from": "ANGJ", "title": 1.5910506663541322, "to": "TRUJ"}, {"from": "ANGJ", "title": 1.804374833005568, "to": "SHPJ"}, {"from": "ANGJ", "title": 0.7789239956052827, "to": "CFRJ"}, {"from": "BVTJ", "title": 1.7611011477385319, "to": "CFRJ"}, {"from": "WHLJ", "title": 1.679024376170663, "to": "AGLJ"}, {"from": "WHLJ", "title": 1.7871228133903017, "to": "MNPJ"}, {"from": "WHLJ", "title": 1.1674451074445582, "to": "SHPJ"}, {"from": "WHLJ", "title": 1.672010075374722, "to": "ARIJ"}, {"from": "WHLJ", "title": 1.779421108176068, "to": "HLMJ"}, {"from": "WHLJ", "title": 1.6711290524772806, "to": "INLJ"}, {"from": "WHLJ", "title": 1.6490421562635813, "to": "INPJ"}, {"from": "WHLJ", "title": 1.61570719299605, "to": "EXXJ"}, {"from": "AGLJ", "title": 0.7649264863841877, "to": "EXXJ"}, {"from": "MNPJ", "title": 1.8057513909724356, "to": "SHPJ"}, {"from": "MNPJ", "title": 0.801530418483047, "to": "ARIJ"}, {"from": "MNPJ", "title": 1.7169572334154468, "to": "MTNJ"}, {"from": "BATJ", "title": 1.5123455870370592, "to": "ZEDJ"}, {"from": "GMLJ", "title": 0.7684681655338756, "to": "SNHJ"}, {"from": "HLMJ", "title": 1.0828435921478334, "to": "INLJ"}, {"from": "HLMJ", "title": 1.120270820185816, "to": "INPJ"}, {"from": "OMUJ", "title": 1.4286336208481267, "to": "ZEDJ"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

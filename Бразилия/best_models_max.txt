@@ -1,0 +1,9 @@
+{'M': ['Betweenness_MST', 'Betweenness_PMFG', 'Eigenvalue_Complete', 'Expected_force_Complete', 'Expected_force_MST', 'Betweenness + B', 
+'Eigenvalue + B', 'Expected force + B', 'MST + B', 'PMFG + B', 'Threshold + B', 'Complete + B'],
+ 
+
+'SR5': ['Betweenness_Threshold', 'Eigenvalue_MST', 'Eigenvalue_PMFG', 'Expected_force_PMFG', 'Expected_force_Threshold', 'Threshold + B'],
+
+
+
+ 'SR': ['Betweenness_Threshold', 'Eigenvalue_MST', 'Eigenvalue_PMFG', 'Expected_force_PMFG', 'Betweenness + B', 'Eigenvalue + B', 'Expected force + B', 'MST + B', 'PMFG + B', 'Threshold + B', 'Complete + B']}
