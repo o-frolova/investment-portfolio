@@ -1,0 +1,349 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1300px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "SBKJ", "label": "SBKJ", "shape": "dot", "title": "SBKJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BVTJ", "label": "BVTJ", "shape": "dot", "title": "BVTJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SHPJ", "label": "SHPJ", "shape": "dot", "title": "SHPJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HLMJ", "label": "HLMJ", "shape": "dot", "title": "HLMJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ARIJ", "label": "ARIJ", "shape": "dot", "title": "ARIJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "INPJ", "label": "INPJ", "shape": "dot", "title": "INPJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DSYJ", "label": "DSYJ", "shape": "dot", "title": "DSYJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EXXJ", "label": "EXXJ", "shape": "dot", "title": "EXXJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TRUJ", "label": "TRUJ", "shape": "dot", "title": "TRUJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ABGJ", "label": "ABGJ", "shape": "dot", "title": "ABGJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FSRJ", "label": "FSRJ", "shape": "dot", "title": "FSRJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "APNJ", "label": "APNJ", "shape": "dot", "title": "APNJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ADRJ", "label": "ADRJ", "shape": "dot", "title": "ADRJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NEDJ", "label": "NEDJ", "shape": "dot", "title": "NEDJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "OMUJ", "label": "OMUJ", "shape": "dot", "title": "OMUJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "INLJ", "label": "INLJ", "shape": "dot", "title": "INLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SLMJ", "label": "SLMJ", "shape": "dot", "title": "SLMJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SNTJ", "label": "SNTJ", "shape": "dot", "title": "SNTJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "REMJ", "label": "REMJ", "shape": "dot", "title": "REMJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SOLJ", "label": "SOLJ", "shape": "dot", "title": "SOLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GRTJ", "label": "GRTJ", "shape": "dot", "title": "GRTJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RMHJ", "label": "RMHJ", "shape": "dot", "title": "RMHJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BATJ", "label": "BATJ", "shape": "dot", "title": "BATJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SNHJ", "label": "SNHJ", "shape": "dot", "title": "SNHJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NPNJn", "label": "NPNJn", "shape": "dot", "title": "NPNJn"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SHCJ", "label": "SHCJ", "shape": "dot", "title": "SHCJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MTNJ", "label": "MTNJ", "shape": "dot", "title": "MTNJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MTAJ", "label": "MTAJ", "shape": "dot", "title": "MTAJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RBXJ", "label": "RBXJ", "shape": "dot", "title": "RBXJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TBSJ", "label": "TBSJ", "shape": "dot", "title": "TBSJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VODJ", "label": "VODJ", "shape": "dot", "title": "VODJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WHLJ", "label": "WHLJ", "shape": "dot", "title": "WHLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AGLJ", "label": "AGLJ", "shape": "dot", "title": "AGLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IMPJ", "label": "IMPJ", "shape": "dot", "title": "IMPJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MNPJ", "label": "MNPJ", "shape": "dot", "title": "MNPJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BTIJ", "label": "BTIJ", "shape": "dot", "title": "BTIJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RNIJ", "label": "RNIJ", "shape": "dot", "title": "RNIJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AMSJ", "label": "AMSJ", "shape": "dot", "title": "AMSJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GMLJ", "label": "GMLJ", "shape": "dot", "title": "GMLJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CFRJ", "label": "CFRJ", "shape": "dot", "title": "CFRJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ANGJ", "label": "ANGJ", "shape": "dot", "title": "ANGJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LSKJ", "label": "LSKJ", "shape": "dot", "title": "LSKJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GFIJ", "label": "GFIJ", "shape": "dot", "title": "GFIJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PANJ", "label": "PANJ", "shape": "dot", "title": "PANJ"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ZEDJ", "label": "ZEDJ", "shape": "dot", "title": "ZEDJ"}]);
+                  edges = new vis.DataSet([{"from": "SBKJ", "title": 0.8442669443359289, "to": "BVTJ"}, {"from": "SBKJ", "title": 1.1535135585604503, "to": "SHPJ"}, {"from": "SBKJ", "title": 1.0642737878426403, "to": "HLMJ"}, {"from": "SBKJ", "title": 1.1639815407700258, "to": "ARIJ"}, {"from": "SBKJ", "title": 0.6961748199452369, "to": "INPJ"}, {"from": "SBKJ", "title": 0.9771865196797109, "to": "DSYJ"}, {"from": "SBKJ", "title": 1.0701306126822874, "to": "EXXJ"}, {"from": "SBKJ", "title": 1.0004328347744382, "to": "TRUJ"}, {"from": "SBKJ", "title": 0.8868519405781424, "to": "ABGJ"}, {"from": "SBKJ", "title": 0.7096969042774324, "to": "FSRJ"}, {"from": "SBKJ", "title": 1.1140004755403345, "to": "APNJ"}, {"from": "SBKJ", "title": 1.1316006858622554, "to": "ADRJ"}, {"from": "SBKJ", "title": 0.6837190950108902, "to": "NEDJ"}, {"from": "SBKJ", "title": 0.7249100522925573, "to": "OMUJ"}, {"from": "SBKJ", "title": 0.6774139992162296, "to": "INLJ"}, {"from": "SBKJ", "title": 1.0126831610555098, "to": "SLMJ"}, {"from": "SBKJ", "title": 0.918047442828254, "to": "SNTJ"}, {"from": "SBKJ", "title": 1.0261858837018578, "to": "REMJ"}, {"from": "SBKJ", "title": 1.1623266348411454, "to": "SOLJ"}, {"from": "SBKJ", "title": 1.030148322816471, "to": "GRTJ"}, {"from": "SBKJ", "title": 0.6202238931200542, "to": "RMHJ"}, {"from": "SBKJ", "title": 1.0272230131857956, "to": "BATJ"}, {"from": "BVTJ", "title": 0.9211812754798547, "to": "SHPJ"}, {"from": "BVTJ", "title": 0.9413629487248638, "to": "HLMJ"}, {"from": "BVTJ", "title": 1.0891261654843118, "to": "INPJ"}, {"from": "BVTJ", "title": 1.043688940488169, "to": "TRUJ"}, {"from": "BVTJ", "title": 0.990543271633398, "to": "FSRJ"}, {"from": "BVTJ", "title": 1.026145027048676, "to": "NEDJ"}, {"from": "BVTJ", "title": 0.7852982838585323, "to": "OMUJ"}, {"from": "BVTJ", "title": 1.0899804113680691, "to": "INLJ"}, {"from": "BVTJ", "title": 1.2017683699248214, "to": "SLMJ"}, {"from": "BVTJ", "title": 0.5172180828583656, "to": "SNTJ"}, {"from": "BVTJ", "title": 0.733268845093862, "to": "SOLJ"}, {"from": "BVTJ", "title": 0.9525750122379464, "to": "RMHJ"}, {"from": "BVTJ", "title": 1.0764907622206124, "to": "BATJ"}, {"from": "BVTJ", "title": 1.1319857814465857, "to": "SNHJ"}, {"from": "BVTJ", "title": 0.9013275416763247, "to": "NPNJn"}, {"from": "BVTJ", "title": 1.2011001418400213, "to": "SHCJ"}, {"from": "BVTJ", "title": 1.1333122933800561, "to": "MTNJ"}, {"from": "BVTJ", "title": 1.150857208784105, "to": "MTAJ"}, {"from": "BVTJ", "title": 1.0343453985144602, "to": "RBXJ"}, {"from": "BVTJ", "title": 1.0853240000506876, "to": "TBSJ"}, {"from": "SHPJ", "title": 1.0791411242979656, "to": "DSYJ"}, {"from": "SHPJ", "title": 0.7412739993164198, "to": "TRUJ"}, {"from": "SHPJ", "title": 1.014527691693724, "to": "FSRJ"}, {"from": "SHPJ", "title": 0.8930086626644652, "to": "ADRJ"}, {"from": "SHPJ", "title": 0.9677209544573322, "to": "SNTJ"}, {"from": "SHPJ", "title": 1.1897641602455402, "to": "SOLJ"}, {"from": "SHPJ", "title": 1.0517575018296415, "to": "RMHJ"}, {"from": "SHPJ", "title": 0.8701018615929251, "to": "MTNJ"}, {"from": "SHPJ", "title": 0.986210026671805, "to": "VODJ"}, {"from": "SHPJ", "title": 1.1573117964093, "to": "WHLJ"}, {"from": "HLMJ", "title": 0.991697631541296, "to": "ARIJ"}, {"from": "HLMJ", "title": 1.111548958613891, "to": "INPJ"}, {"from": "HLMJ", "title": 0.9899921928552059, "to": "EXXJ"}, {"from": "HLMJ", "title": 1.168794547958218, "to": "OMUJ"}, {"from": "HLMJ", "title": 1.074080818459276, "to": "INLJ"}, {"from": "HLMJ", "title": 1.0945241000106527, "to": "SNTJ"}, {"from": "HLMJ", "title": 0.6707091592069153, "to": "SOLJ"}, {"from": "HLMJ", "title": 1.1418419223556446, "to": "BATJ"}, {"from": "HLMJ", "title": 0.8104146248030017, "to": "SNHJ"}, {"from": "HLMJ", "title": 0.8519579137607292, "to": "NPNJn"}, {"from": "HLMJ", "title": 0.7220466449489406, "to": "SHCJ"}, {"from": "HLMJ", "title": 0.9730286776357402, "to": "MTAJ"}, {"from": "HLMJ", "title": 0.9205071182287945, "to": "RBXJ"}, {"from": "HLMJ", "title": 1.200524324282932, "to": "TBSJ"}, {"from": "HLMJ", "title": 1.0098119059106208, "to": "AGLJ"}, {"from": "HLMJ", "title": 1.0441712707994437, "to": "IMPJ"}, {"from": "HLMJ", "title": 1.194684600253706, "to": "MNPJ"}, {"from": "HLMJ", "title": 0.8454113504896122, "to": "BTIJ"}, {"from": "HLMJ", "title": 1.0782558206926554, "to": "RNIJ"}, {"from": "HLMJ", "title": 1.0398994006513504, "to": "AMSJ"}, {"from": "HLMJ", "title": 1.1136174525647837, "to": "GMLJ"}, {"from": "ARIJ", "title": 0.9171866951466864, "to": "INPJ"}, {"from": "ARIJ", "title": 0.7153278208704945, "to": "EXXJ"}, {"from": "ARIJ", "title": 1.1200432984421997, "to": "OMUJ"}, {"from": "ARIJ", "title": 0.8742171648907116, "to": "INLJ"}, {"from": "ARIJ", "title": 1.1382009971583056, "to": "REMJ"}, {"from": "ARIJ", "title": 1.1001932840818247, "to": "SOLJ"}, {"from": "ARIJ", "title": 1.1514367241195351, "to": "GRTJ"}, {"from": "ARIJ", "title": 1.035324778246141, "to": "BATJ"}, {"from": "ARIJ", "title": 0.9844213615796147, "to": "SNHJ"}, {"from": "ARIJ", "title": 0.938251723650103, "to": "NPNJn"}, {"from": "ARIJ", "title": 0.89512514362956, "to": "SHCJ"}, {"from": "ARIJ", "title": 1.1769017818004972, "to": "MTAJ"}, {"from": "ARIJ", "title": 0.42838169188918473, "to": "AGLJ"}, {"from": "ARIJ", "title": 0.7600712482871735, "to": "IMPJ"}, {"from": "ARIJ", "title": 0.8001451098279249, "to": "MNPJ"}, {"from": "ARIJ", "title": 1.0642491892746762, "to": "BTIJ"}, {"from": "ARIJ", "title": 0.6383572067025163, "to": "AMSJ"}, {"from": "ARIJ", "title": 1.1728350604621771, "to": "GMLJ"}, {"from": "ARIJ", "title": 1.0555084522640505, "to": "CFRJ"}, {"from": "ARIJ", "title": 1.1581488919679024, "to": "ANGJ"}, {"from": "INPJ", "title": 1.0686059926121882, "to": "DSYJ"}, {"from": "INPJ", "title": 1.0289557872731179, "to": "EXXJ"}, {"from": "INPJ", "title": 0.9062617615860413, "to": "ABGJ"}, {"from": "INPJ", "title": 1.009390009693514, "to": "FSRJ"}, {"from": "INPJ", "title": 1.0458241172829832, "to": "APNJ"}, {"from": "INPJ", "title": 0.8096405199749329, "to": "NEDJ"}, {"from": "INPJ", "title": 0.6866199524712651, "to": "OMUJ"}, {"from": "INPJ", "title": 0.09217873978903808, "to": "INLJ"}, {"from": "INPJ", "title": 1.1246637630987435, "to": "SLMJ"}, {"from": "INPJ", "title": 1.0235997562745682, "to": "SNTJ"}, {"from": "INPJ", "title": 0.7676595719589299, "to": "REMJ"}, {"from": "INPJ", "title": 1.1705232627028728, "to": "SOLJ"}, {"from": "INPJ", "title": 0.9198794818030417, "to": "GRTJ"}, {"from": "INPJ", "title": 0.8697110350736486, "to": "RMHJ"}, {"from": "INPJ", "title": 0.7002190421461274, "to": "BATJ"}, {"from": "INPJ", "title": 1.143905967674262, "to": "SNHJ"}, {"from": "INPJ", "title": 1.1624186532684535, "to": "NPNJn"}, {"from": "INPJ", "title": 1.010672391067973, "to": "SHCJ"}, {"from": "INPJ", "title": 1.181385724134713, "to": "TBSJ"}, {"from": "INPJ", "title": 0.9735803175338085, "to": "AGLJ"}, {"from": "INPJ", "title": 0.89377217289659, "to": "MNPJ"}, {"from": "INPJ", "title": 1.1531947497271822, "to": "AMSJ"}, {"from": "DSYJ", "title": 0.6094453579342045, "to": "TRUJ"}, {"from": "DSYJ", "title": 0.8574841617881392, "to": "ABGJ"}, {"from": "DSYJ", "title": 0.6035971350879684, "to": "FSRJ"}, {"from": "DSYJ", "title": 0.9620964370764913, "to": "APNJ"}, {"from": "DSYJ", "title": 0.9020695015310162, "to": "ADRJ"}, {"from": "DSYJ", "title": 1.0476991017281176, "to": "NEDJ"}, {"from": "DSYJ", "title": 1.061521406315254, "to": "OMUJ"}, {"from": "DSYJ", "title": 1.0831770906286713, "to": "INLJ"}, {"from": "DSYJ", "title": 0.4924992669644756, "to": "SLMJ"}, {"from": "DSYJ", "title": 1.2014220376574283, "to": "SNTJ"}, {"from": "DSYJ", "title": 0.9931227434445156, "to": "REMJ"}, {"from": "DSYJ", "title": 1.1932557216157778, "to": "GRTJ"}, {"from": "DSYJ", "title": 0.6105754075279358, "to": "RMHJ"}, {"from": "DSYJ", "title": 0.9078252217277666, "to": "VODJ"}, {"from": "DSYJ", "title": 1.1496187697876667, "to": "WHLJ"}, {"from": "EXXJ", "title": 1.1432996236671664, "to": "FSRJ"}, {"from": "EXXJ", "title": 1.131840794122368, "to": "OMUJ"}, {"from": "EXXJ", "title": 0.9824926795668817, "to": "INLJ"}, {"from": "EXXJ", "title": 1.0572536860402475, "to": "SOLJ"}, {"from": "EXXJ", "title": 0.8785914267780038, "to": "NPNJn"}, {"from": "EXXJ", "title": 1.0745469072444374, "to": "MTAJ"}, {"from": "EXXJ", "title": 0.7644667272498441, "to": "AGLJ"}, {"from": "EXXJ", "title": 1.138848266253529, "to": "IMPJ"}, {"from": "EXXJ", "title": 1.0105948578647361, "to": "MNPJ"}, {"from": "EXXJ", "title": 1.0001145016377877, "to": "AMSJ"}, {"from": "TRUJ", "title": 1.1412003562596738, "to": "ABGJ"}, {"from": "TRUJ", "title": 0.5934487166768618, "to": "FSRJ"}, {"from": "TRUJ", "title": 1.1863430604314391, "to": "APNJ"}, {"from": "TRUJ", "title": 0.7253284247874713, "to": "ADRJ"}, {"from": "TRUJ", "title": 1.1421344946930152, "to": "NEDJ"}, {"from": "TRUJ", "title": 1.1177765018688397, "to": "OMUJ"}, {"from": "TRUJ", "title": 0.7383435911708798, "to": "SLMJ"}, {"from": "TRUJ", "title": 1.0590378568609935, "to": "SNTJ"}, {"from": "TRUJ", "title": 0.6805393497695709, "to": "RMHJ"}, {"from": "TRUJ", "title": 1.0503305228430004, "to": "MTNJ"}, {"from": "TRUJ", "title": 0.8397789925317021, "to": "VODJ"}, {"from": "TRUJ", "title": 1.051904051217211, "to": "WHLJ"}, {"from": "ABGJ", "title": 0.9760440362112568, "to": "FSRJ"}, {"from": "ABGJ", "title": 0.5394442239162034, "to": "APNJ"}, {"from": "ABGJ", "title": 1.112035296111599, "to": "ADRJ"}, {"from": "ABGJ", "title": 0.654801008891506, "to": "NEDJ"}, {"from": "ABGJ", "title": 1.0597781765810648, "to": "OMUJ"}, {"from": "ABGJ", "title": 0.9120107824723239, "to": "INLJ"}, {"from": "ABGJ", "title": 0.9095049290143088, "to": "SLMJ"}, {"from": "ABGJ", "title": 0.7025052777496686, "to": "REMJ"}, {"from": "ABGJ", "title": 0.8368327749503267, "to": "GRTJ"}, {"from": "ABGJ", "title": 0.7909246783728876, "to": "RMHJ"}, {"from": "ABGJ", "title": 1.1522656738938606, "to": "BATJ"}, {"from": "ABGJ", "title": 1.0449328361482648, "to": "MNPJ"}, {"from": "ABGJ", "title": 0.9407756626030818, "to": "PANJ"}, {"from": "FSRJ", "title": 1.0707437697631539, "to": "APNJ"}, {"from": "FSRJ", "title": 0.9038526175169886, "to": "ADRJ"}, {"from": "FSRJ", "title": 0.8861239685298511, "to": "NEDJ"}, {"from": "FSRJ", "title": 0.8525353544041335, "to": "OMUJ"}, {"from": "FSRJ", "title": 1.0061147929635537, "to": "INLJ"}, {"from": "FSRJ", "title": 0.566498934493669, "to": "SLMJ"}, {"from": "FSRJ", "title": 0.9432180410128658, "to": "SNTJ"}, {"from": "FSRJ", "title": 1.0726900774188117, "to": "REMJ"}, {"from": "FSRJ", "title": 1.074589233807212, "to": "GRTJ"}, {"from": "FSRJ", "title": 0.3379463201292222, "to": "RMHJ"}, {"from": "FSRJ", "title": 1.06843623606343, "to": "MTNJ"}, {"from": "FSRJ", "title": 1.0289444625322413, "to": "VODJ"}, {"from": "APNJ", "title": 1.0839028253419174, "to": "ADRJ"}, {"from": "APNJ", "title": 0.637011503405634, "to": "NEDJ"}, {"from": "APNJ", "title": 1.0529781104039788, "to": "OMUJ"}, {"from": "APNJ", "title": 1.0709381606135806, "to": "INLJ"}, {"from": "APNJ", "title": 0.9969686144071152, "to": "SLMJ"}, {"from": "APNJ", "title": 0.7756782030488844, "to": "REMJ"}, {"from": "APNJ", "title": 0.8274505195341564, "to": "GRTJ"}, {"from": "APNJ", "title": 0.8721318470323234, "to": "RMHJ"}, {"from": "APNJ", "title": 1.2029225184070595, "to": "BATJ"}, {"from": "APNJ", "title": 0.8554204125050419, "to": "PANJ"}, {"from": "ADRJ", "title": 1.1309878724545275, "to": "NEDJ"}, {"from": "ADRJ", "title": 1.0756233237546928, "to": "SLMJ"}, {"from": "ADRJ", "title": 0.9336982381651315, "to": "RMHJ"}, {"from": "ADRJ", "title": 1.163473557157207, "to": "MTNJ"}, {"from": "ADRJ", "title": 0.8510075246466511, "to": "VODJ"}, {"from": "ADRJ", "title": 1.0695060325549637, "to": "LSKJ"}, {"from": "NEDJ", "title": 0.7198601185821132, "to": "OMUJ"}, {"from": "NEDJ", "title": 0.8231876607612473, "to": "INLJ"}, {"from": "NEDJ", "title": 1.010658093987268, "to": "SLMJ"}, {"from": "NEDJ", "title": 1.0026329399121106, "to": "SNTJ"}, {"from": "NEDJ", "title": 0.7858041064829338, "to": "REMJ"}, {"from": "NEDJ", "title": 0.7491678341949848, "to": "GRTJ"}, {"from": "NEDJ", "title": 0.6629327678438166, "to": "RMHJ"}, {"from": "NEDJ", "title": 1.0511961117225241, "to": "BATJ"}, {"from": "NEDJ", "title": 1.1984849797125596, "to": "MNPJ"}, {"from": "NEDJ", "title": 1.1523026774260177, "to": "PANJ"}, {"from": "OMUJ", "title": 0.6999975682485478, "to": "INLJ"}, {"from": "OMUJ", "title": 0.9779317098257942, "to": "SLMJ"}, {"from": "OMUJ", "title": 0.6167206753218044, "to": "SNTJ"}, {"from": "OMUJ", "title": 0.9119366833907991, "to": "REMJ"}, {"from": "OMUJ", "title": 1.0293473226617045, "to": "SOLJ"}, {"from": "OMUJ", "title": 0.8624716588217253, "to": "GRTJ"}, {"from": "OMUJ", "title": 0.7206237973668896, "to": "RMHJ"}, {"from": "OMUJ", "title": 0.7560279718497509, "to": "BATJ"}, {"from": "OMUJ", "title": 1.0309491331784635, "to": "NPNJn"}, {"from": "OMUJ", "title": 1.0727041731319917, "to": "TBSJ"}, {"from": "INLJ", "title": 1.123857920460137, "to": "SLMJ"}, {"from": "INLJ", "title": 1.0348660376436671, "to": "SNTJ"}, {"from": "INLJ", "title": 0.7680325582985321, "to": "REMJ"}, {"from": "INLJ", "title": 1.1559060211932788, "to": "SOLJ"}, {"from": "INLJ", "title": 0.9043196488668211, "to": "GRTJ"}, {"from": "INLJ", "title": 0.876755948350971, "to": "RMHJ"}, {"from": "INLJ", "title": 0.7016928585459041, "to": "BATJ"}, {"from": "INLJ", "title": 1.1319868471612515, "to": "SNHJ"}, {"from": "INLJ", "title": 1.135573173541563, "to": "NPNJn"}, {"from": "INLJ", "title": 0.986853877060466, "to": "SHCJ"}, {"from": "INLJ", "title": 1.1922569207900142, "to": "TBSJ"}, {"from": "INLJ", "title": 0.9367354992215194, "to": "AGLJ"}, {"from": "INLJ", "title": 0.8658813588238911, "to": "MNPJ"}, {"from": "INLJ", "title": 1.1230178631552086, "to": "AMSJ"}, {"from": "SLMJ", "title": 1.123016846990817, "to": "SNTJ"}, {"from": "SLMJ", "title": 0.9447860470499336, "to": "REMJ"}, {"from": "SLMJ", "title": 1.008270158349599, "to": "GRTJ"}, {"from": "SLMJ", "title": 0.6177671727453908, "to": "RMHJ"}, {"from": "SLMJ", "title": 1.0631471569820397, "to": "VODJ"}, {"from": "SLMJ", "title": 1.0721490246136647, "to": "WHLJ"}, {"from": "SNTJ", "title": 0.7981342053815048, "to": "SOLJ"}, {"from": "SNTJ", "title": 1.1430233459727268, "to": "GRTJ"}, {"from": "SNTJ", "title": 0.8969899060342734, "to": "RMHJ"}, {"from": "SNTJ", "title": 0.9959987118993571, "to": "BATJ"}, {"from": "SNTJ", "title": 1.1501651154322006, "to": "SNHJ"}, {"from": "SNTJ", "title": 0.9167111444648964, "to": "NPNJn"}, {"from": "SNTJ", "title": 1.121124751957374, "to": "MTNJ"}, {"from": "SNTJ", "title": 1.0042960127989828, "to": "RBXJ"}, {"from": "SNTJ", "title": 1.0618010389018753, "to": "TBSJ"}, {"from": "REMJ", "title": 0.6239034381823222, "to": "GRTJ"}, {"from": "REMJ", "title": 0.9021770841318523, "to": "RMHJ"}, {"from": "REMJ", "title": 0.8398903399045333, "to": "BATJ"}, {"from": "REMJ", "title": 1.07190826209742, "to": "TBSJ"}, {"from": "REMJ", "title": 1.1943021973363648, "to": "AGLJ"}, {"from": "REMJ", "title": 0.9660967455435524, "to": "MNPJ"}, {"from": "REMJ", "title": 1.0945847502733128, "to": "PANJ"}, {"from": "SOLJ", "title": 1.065290851384673, "to": "BATJ"}, {"from": "SOLJ", "title": 0.8873681712724204, "to": "SNHJ"}, {"from": "SOLJ", "title": 0.546438856657986, "to": "NPNJn"}, {"from": "SOLJ", "title": 0.9606370754317771, "to": "SHCJ"}, {"from": "SOLJ", "title": 1.156224171663975, "to": "MTNJ"}, {"from": "SOLJ", "title": 0.7895976553442691, "to": "MTAJ"}, {"from": "SOLJ", "title": 0.7154056910630373, "to": "RBXJ"}, {"from": "SOLJ", "title": 1.0060373592658471, "to": "TBSJ"}, {"from": "SOLJ", "title": 1.0820723847493932, "to": "AGLJ"}, {"from": "SOLJ", "title": 1.1440936139168807, "to": "IMPJ"}, {"from": "SOLJ", "title": 0.9729194605817254, "to": "BTIJ"}, {"from": "SOLJ", "title": 1.0708663527449058, "to": "RNIJ"}, {"from": "GRTJ", "title": 0.9324480343954176, "to": "RMHJ"}, {"from": "GRTJ", "title": 0.9809523851310066, "to": "BATJ"}, {"from": "GRTJ", "title": 1.1650562610497925, "to": "TBSJ"}, {"from": "GRTJ", "title": 1.0475734353792965, "to": "MNPJ"}, {"from": "GRTJ", "title": 1.0970248686238673, "to": "PANJ"}, {"from": "RMHJ", "title": 1.0746611323138833, "to": "BATJ"}, {"from": "RMHJ", "title": 1.1778880721992526, "to": "VODJ"}, {"from": "BATJ", "title": 1.037784326878508, "to": "SNHJ"}, {"from": "BATJ", "title": 1.0998490938894996, "to": "NPNJn"}, {"from": "BATJ", "title": 0.8513945206905497, "to": "SHCJ"}, {"from": "BATJ", "title": 0.9857009917617581, "to": "TBSJ"}, {"from": "BATJ", "title": 0.9851772798261148, "to": "AGLJ"}, {"from": "BATJ", "title": 1.1258692818862517, "to": "IMPJ"}, {"from": "BATJ", "title": 1.0878675664662925, "to": "MNPJ"}, {"from": "BATJ", "title": 1.1035731481536828, "to": "AMSJ"}, {"from": "SNHJ", "title": 0.9799399838289656, "to": "NPNJn"}, {"from": "SNHJ", "title": 0.5785398058410183, "to": "SHCJ"}, {"from": "SNHJ", "title": 1.146852229058025, "to": "MTAJ"}, {"from": "SNHJ", "title": 0.9854254490663831, "to": "RBXJ"}, {"from": "SNHJ", "title": 1.0368482087339541, "to": "TBSJ"}, {"from": "SNHJ", "title": 1.0090910531228083, "to": "AGLJ"}, {"from": "SNHJ", "title": 0.8861398315764254, "to": "IMPJ"}, {"from": "SNHJ", "title": 1.1502487202811322, "to": "MNPJ"}, {"from": "SNHJ", "title": 0.7552516351104855, "to": "BTIJ"}, {"from": "SNHJ", "title": 0.9875810552279394, "to": "RNIJ"}, {"from": "SNHJ", "title": 0.9580436925404407, "to": "AMSJ"}, {"from": "SNHJ", "title": 0.7679600654359983, "to": "GMLJ"}, {"from": "NPNJn", "title": 1.0898800574650007, "to": "SHCJ"}, {"from": "NPNJn", "title": 1.19378077846948, "to": "MTNJ"}, {"from": "NPNJn", "title": 0.9155187195063532, "to": "MTAJ"}, {"from": "NPNJn", "title": 0.8871873665944852, "to": "RBXJ"}, {"from": "NPNJn", "title": 0.9568141170970893, "to": "TBSJ"}, {"from": "NPNJn", "title": 0.9858820675377209, "to": "AGLJ"}, {"from": "NPNJn", "title": 1.1196226640519864, "to": "IMPJ"}, {"from": "NPNJn", "title": 1.1052916622208404, "to": "BTIJ"}, {"from": "NPNJn", "title": 1.1695498037890826, "to": "RNIJ"}, {"from": "NPNJn", "title": 1.1275815909062221, "to": "AMSJ"}, {"from": "SHCJ", "title": 1.1760872102610864, "to": "MTAJ"}, {"from": "SHCJ", "title": 1.1006831926824348, "to": "RBXJ"}, {"from": "SHCJ", "title": 1.12894503062821, "to": "TBSJ"}, {"from": "SHCJ", "title": 0.8414345854903946, "to": "AGLJ"}, {"from": "SHCJ", "title": 0.718231329140399, "to": "IMPJ"}, {"from": "SHCJ", "title": 0.9250145924548533, "to": "MNPJ"}, {"from": "SHCJ", "title": 0.6852362697932745, "to": "BTIJ"}, {"from": "SHCJ", "title": 0.9975849885279231, "to": "RNIJ"}, {"from": "SHCJ", "title": 0.7675916490924808, "to": "AMSJ"}, {"from": "SHCJ", "title": 0.866669289460667, "to": "GMLJ"}, {"from": "MTNJ", "title": 1.1175189096103904, "to": "MTAJ"}, {"from": "MTNJ", "title": 0.8456379395566922, "to": "VODJ"}, {"from": "MTAJ", "title": 0.9944316370354759, "to": "RBXJ"}, {"from": "MTAJ", "title": 1.1085663645398012, "to": "AGLJ"}, {"from": "MTAJ", "title": 1.1114084937522408, "to": "IMPJ"}, {"from": "MTAJ", "title": 0.9608514714492202, "to": "BTIJ"}, {"from": "MTAJ", "title": 0.8799159750684795, "to": "RNIJ"}, {"from": "RBXJ", "title": 1.1264049180265914, "to": "TBSJ"}, {"from": "RBXJ", "title": 1.058129762902495, "to": "BTIJ"}, {"from": "RBXJ", "title": 1.0281813706092011, "to": "RNIJ"}, {"from": "RBXJ", "title": 1.148476103766368, "to": "ZEDJ"}, {"from": "TBSJ", "title": 1.1377126112276545, "to": "GMLJ"}, {"from": "TBSJ", "title": 0.9852937958156985, "to": "ZEDJ"}, {"from": "VODJ", "title": 1.1165414115819525, "to": "WHLJ"}, {"from": "VODJ", "title": 0.9984803604029858, "to": "LSKJ"}, {"from": "VODJ", "title": 1.147238964741625, "to": "GFIJ"}, {"from": "WHLJ", "title": 0.9909618329979202, "to": "ZEDJ"}, {"from": "AGLJ", "title": 0.6237616910369481, "to": "IMPJ"}, {"from": "AGLJ", "title": 0.7819056979073512, "to": "MNPJ"}, {"from": "AGLJ", "title": 0.9158532692142627, "to": "BTIJ"}, {"from": "AGLJ", "title": 1.138680047733578, "to": "RNIJ"}, {"from": "AGLJ", "title": 0.5573261384162262, "to": "AMSJ"}, {"from": "AGLJ", "title": 1.1622638977386561, "to": "GMLJ"}, {"from": "AGLJ", "title": 1.0261469740277804, "to": "CFRJ"}, {"from": "AGLJ", "title": 1.1515821089013618, "to": "ANGJ"}, {"from": "IMPJ", "title": 0.9031435730058226, "to": "MNPJ"}, {"from": "IMPJ", "title": 0.6337222365484506, "to": "BTIJ"}, {"from": "IMPJ", "title": 0.81104460401855, "to": "RNIJ"}, {"from": "IMPJ", "title": 0.36993934313881766, "to": "AMSJ"}, {"from": "IMPJ", "title": 0.9517710301787777, "to": "GMLJ"}, {"from": "IMPJ", "title": 0.9807125374092877, "to": "CFRJ"}, {"from": "IMPJ", "title": 1.0607592135835289, "to": "ANGJ"}, {"from": "MNPJ", "title": 1.1582011672085804, "to": "BTIJ"}, {"from": "MNPJ", "title": 0.7072545247047781, "to": "AMSJ"}, {"from": "MNPJ", "title": 1.1258069782402071, "to": "GMLJ"}, {"from": "MNPJ", "title": 0.8637166091046079, "to": "CFRJ"}, {"from": "MNPJ", "title": 1.0745372420306254, "to": "ANGJ"}, {"from": "MNPJ", "title": 1.144454203472295, "to": "GFIJ"}, {"from": "MNPJ", "title": 1.003061800157618, "to": "PANJ"}, {"from": "BTIJ", "title": 0.5184436923780341, "to": "RNIJ"}, {"from": "BTIJ", "title": 0.8126698546127653, "to": "AMSJ"}, {"from": "BTIJ", "title": 0.9433028430980217, "to": "GMLJ"}, {"from": "RNIJ", "title": 1.0092330672219967, "to": "AMSJ"}, {"from": "RNIJ", "title": 1.1006476474357272, "to": "GMLJ"}, {"from": "AMSJ", "title": 1.0204306589514507, "to": "GMLJ"}, {"from": "AMSJ", "title": 0.94473022501, "to": "CFRJ"}, {"from": "AMSJ", "title": 0.9776168816662051, "to": "ANGJ"}, {"from": "AMSJ", "title": 1.145110687776315, "to": "GFIJ"}, {"from": "CFRJ", "title": 0.7779453516874727, "to": "ANGJ"}, {"from": "CFRJ", "title": 1.0423568992882897, "to": "LSKJ"}, {"from": "CFRJ", "title": 0.6867015868991367, "to": "GFIJ"}, {"from": "CFRJ", "title": 1.0157226411518525, "to": "PANJ"}, {"from": "ANGJ", "title": 1.1991034664752125, "to": "LSKJ"}, {"from": "ANGJ", "title": 0.5416568756168969, "to": "GFIJ"}, {"from": "ANGJ", "title": 0.9208411531815665, "to": "PANJ"}, {"from": "LSKJ", "title": 0.9000568287456677, "to": "GFIJ"}, {"from": "GFIJ", "title": 0.9433747483471167, "to": "PANJ"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

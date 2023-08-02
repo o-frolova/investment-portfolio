@@ -1,0 +1,349 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1300px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "600048", "label": "600048", "shape": "dot", "title": "600048"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600060", "label": "600060", "shape": "dot", "title": "600060"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600061", "label": "600061", "shape": "dot", "title": "600061"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600063", "label": "600063", "shape": "dot", "title": "600063"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600017", "label": "600017", "shape": "dot", "title": "600017"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600000", "label": "600000", "shape": "dot", "title": "600000"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600015", "label": "600015", "shape": "dot", "title": "600015"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600029", "label": "600029", "shape": "dot", "title": "600029"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600007", "label": "600007", "shape": "dot", "title": "600007"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600022", "label": "600022", "shape": "dot", "title": "600022"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600021", "label": "600021", "shape": "dot", "title": "600021"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600008", "label": "600008", "shape": "dot", "title": "600008"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600019", "label": "600019", "shape": "dot", "title": "600019"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600031", "label": "600031", "shape": "dot", "title": "600031"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600057", "label": "600057", "shape": "dot", "title": "600057"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600050", "label": "600050", "shape": "dot", "title": "600050"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600125", "label": "600125", "shape": "dot", "title": "600125"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600051", "label": "600051", "shape": "dot", "title": "600051"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "601988", "label": "601988", "shape": "dot", "title": "601988"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600067", "label": "600067", "shape": "dot", "title": "600067"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600688", "label": "600688", "shape": "dot", "title": "600688"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600064", "label": "600064", "shape": "dot", "title": "600064"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600070", "label": "600070", "shape": "dot", "title": "600070"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600016", "label": "600016", "shape": "dot", "title": "600016"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600028", "label": "600028", "shape": "dot", "title": "600028"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600039", "label": "600039", "shape": "dot", "title": "600039"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600010", "label": "600010", "shape": "dot", "title": "600010"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600012", "label": "600012", "shape": "dot", "title": "600012"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600023", "label": "600023", "shape": "dot", "title": "600023"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600037", "label": "600037", "shape": "dot", "title": "600037"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600035", "label": "600035", "shape": "dot", "title": "600035"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600020", "label": "600020", "shape": "dot", "title": "600020"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600033", "label": "600033", "shape": "dot", "title": "600033"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600118", "label": "600118", "shape": "dot", "title": "600118"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600072", "label": "600072", "shape": "dot", "title": "600072"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600073", "label": "600073", "shape": "dot", "title": "600073"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600036", "label": "600036", "shape": "dot", "title": "600036"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "601088", "label": "601088", "shape": "dot", "title": "601088"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600030", "label": "600030", "shape": "dot", "title": "600030"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600018", "label": "600018", "shape": "dot", "title": "600018"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600645", "label": "600645", "shape": "dot", "title": "600645"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600038", "label": "600038", "shape": "dot", "title": "600038"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600009", "label": "600009", "shape": "dot", "title": "600009"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600059", "label": "600059", "shape": "dot", "title": "600059"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600006", "label": "600006", "shape": "dot", "title": "600006"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600027", "label": "600027", "shape": "dot", "title": "600027"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "600004", "label": "600004", "shape": "dot", "title": "600004"}]);
+                  edges = new vis.DataSet([{"from": "600048", "title": 0.7343754081792093, "to": "600060"}, {"from": "600048", "title": 0.8834628033064277, "to": "600061"}, {"from": "600048", "title": 0.5799229847560335, "to": "600063"}, {"from": "600048", "title": 0.7417924642716213, "to": "600017"}, {"from": "600048", "title": 0.8652171849426736, "to": "600000"}, {"from": "600048", "title": 0.6688258604708711, "to": "600015"}, {"from": "600048", "title": 0.77425828156028, "to": "600029"}, {"from": "600048", "title": 0.6689102748106964, "to": "600007"}, {"from": "600048", "title": 0.7837118841558941, "to": "600022"}, {"from": "600048", "title": 0.6979922939375325, "to": "600021"}, {"from": "600048", "title": 0.6688028427687518, "to": "600008"}, {"from": "600048", "title": 0.738333049151517, "to": "600019"}, {"from": "600048", "title": 0.7735610944265289, "to": "600031"}, {"from": "600048", "title": 0.8161563000553421, "to": "600057"}, {"from": "600048", "title": 0.8418935850002401, "to": "600050"}, {"from": "600048", "title": 0.7537347794068473, "to": "600125"}, {"from": "600048", "title": 0.8149360049529134, "to": "600051"}, {"from": "600060", "title": 0.7618398128486069, "to": "600061"}, {"from": "600060", "title": 0.5364547399582128, "to": "600063"}, {"from": "600060", "title": 0.6511905476771549, "to": "600017"}, {"from": "600060", "title": 0.8250524319494184, "to": "600000"}, {"from": "600060", "title": 0.44864689627087867, "to": "600015"}, {"from": "600060", "title": 0.6162634121132237, "to": "600029"}, {"from": "600060", "title": 0.5956169307603971, "to": "600022"}, {"from": "600060", "title": 0.5353259033157759, "to": "600008"}, {"from": "600060", "title": 0.7208420738831373, "to": "600019"}, {"from": "600060", "title": 0.7950669198120852, "to": "600031"}, {"from": "600060", "title": 0.6891940280321823, "to": "600057"}, {"from": "600060", "title": 0.6635273193024721, "to": "600050"}, {"from": "600060", "title": 0.6066558576064235, "to": "600125"}, {"from": "600060", "title": 0.793901927106215, "to": "600051"}, {"from": "600060", "title": 0.7418169921739368, "to": "601988"}, {"from": "600060", "title": 0.8886481016547775, "to": "600067"}, {"from": "600060", "title": 0.8823028817960409, "to": "600688"}, {"from": "600060", "title": 0.8028857339527042, "to": "600064"}, {"from": "600060", "title": 0.6809865560842003, "to": "600070"}, {"from": "600060", "title": 0.6214986252723631, "to": "600016"}, {"from": "600060", "title": 0.7754021682262454, "to": "600028"}, {"from": "600060", "title": 0.6804186338175595, "to": "600039"}, {"from": "600060", "title": 0.8579195879795927, "to": "600010"}, {"from": "600060", "title": 0.5444593981824694, "to": "600012"}, {"from": "600060", "title": 0.7614972056277086, "to": "600023"}, {"from": "600060", "title": 0.749592680294904, "to": "600037"}, {"from": "600060", "title": 0.7687526816533358, "to": "600035"}, {"from": "600060", "title": 0.8463385699883895, "to": "600020"}, {"from": "600060", "title": 0.715564084851461, "to": "600033"}, {"from": "600060", "title": 0.8600087237030941, "to": "600118"}, {"from": "600061", "title": 0.6898373668690801, "to": "600063"}, {"from": "600061", "title": 0.42611194698421495, "to": "600017"}, {"from": "600061", "title": 0.5985940726859074, "to": "600015"}, {"from": "600061", "title": 0.5628092659081577, "to": "600029"}, {"from": "600061", "title": 0.3303239056618686, "to": "600022"}, {"from": "600061", "title": 0.7243719964050768, "to": "600021"}, {"from": "600061", "title": 0.4847978687291016, "to": "600008"}, {"from": "600061", "title": 0.6413346280000399, "to": "600019"}, {"from": "600061", "title": 0.41653732877507516, "to": "600031"}, {"from": "600061", "title": 0.49386861783181923, "to": "600057"}, {"from": "600061", "title": 0.47151985661713564, "to": "600050"}, {"from": "600061", "title": 0.6024395038333291, "to": "600125"}, {"from": "600061", "title": 0.5303726936395505, "to": "600051"}, {"from": "600061", "title": 0.8307607268048182, "to": "601988"}, {"from": "600061", "title": 0.5644004194199497, "to": "600067"}, {"from": "600061", "title": 0.6045142656952013, "to": "600688"}, {"from": "600061", "title": 0.6095415478717113, "to": "600064"}, {"from": "600061", "title": 0.8646585295037904, "to": "600070"}, {"from": "600061", "title": 0.6857148016833627, "to": "600016"}, {"from": "600061", "title": 0.7243396094370954, "to": "600028"}, {"from": "600061", "title": 0.4182367823733678, "to": "600039"}, {"from": "600061", "title": 0.4425205659302827, "to": "600010"}, {"from": "600061", "title": 0.5088888647358532, "to": "600012"}, {"from": "600061", "title": 0.5974131955048254, "to": "600023"}, {"from": "600061", "title": 0.42826017868788013, "to": "600037"}, {"from": "600061", "title": 0.5802608274306272, "to": "600035"}, {"from": "600061", "title": 0.5818227032352447, "to": "600020"}, {"from": "600061", "title": 0.4751191990247798, "to": "600033"}, {"from": "600061", "title": 0.43579974122597537, "to": "600118"}, {"from": "600061", "title": 0.5609676690854157, "to": "600072"}, {"from": "600061", "title": 0.9007425694876634, "to": "600073"}, {"from": "600061", "title": 0.7167290164320602, "to": "600036"}, {"from": "600061", "title": 0.7725571575064636, "to": "601088"}, {"from": "600061", "title": 0.8963198224307874, "to": "600030"}, {"from": "600061", "title": 0.8080967274840554, "to": "600018"}, {"from": "600061", "title": 0.6877555305591837, "to": "600645"}, {"from": "600063", "title": 0.47905779322987274, "to": "600017"}, {"from": "600063", "title": 0.8913719433378265, "to": "600000"}, {"from": "600063", "title": 0.4973533032151072, "to": "600015"}, {"from": "600063", "title": 0.5847900972610454, "to": "600029"}, {"from": "600063", "title": 0.8100283258531984, "to": "600007"}, {"from": "600063", "title": 0.5394675899270753, "to": "600022"}, {"from": "600063", "title": 0.8173317392698864, "to": "600021"}, {"from": "600063", "title": 0.41125197782131506, "to": "600008"}, {"from": "600063", "title": 0.6047619794143071, "to": "600019"}, {"from": "600063", "title": 0.620578374831215, "to": "600031"}, {"from": "600063", "title": 0.5032499372404801, "to": "600057"}, {"from": "600063", "title": 0.584643758157697, "to": "600050"}, {"from": "600063", "title": 0.39999344746151655, "to": "600125"}, {"from": "600063", "title": 0.5478943328303018, "to": "600051"}, {"from": "600063", "title": 0.8679126031406452, "to": "601988"}, {"from": "600063", "title": 0.881148693176258, "to": "600067"}, {"from": "600063", "title": 0.8162145675743007, "to": "600064"}, {"from": "600063", "title": 0.7336451329319013, "to": "600070"}, {"from": "600063", "title": 0.7754538936094912, "to": "600016"}, {"from": "600063", "title": 0.7539241106417629, "to": "600028"}, {"from": "600063", "title": 0.6642418417257877, "to": "600039"}, {"from": "600063", "title": 0.8341935955658343, "to": "600010"}, {"from": "600063", "title": 0.685214916498119, "to": "600012"}, {"from": "600063", "title": 0.7905914657196591, "to": "600023"}, {"from": "600063", "title": 0.6394939886615233, "to": "600037"}, {"from": "600063", "title": 0.6771904149208786, "to": "600035"}, {"from": "600063", "title": 0.8591876747037542, "to": "600020"}, {"from": "600063", "title": 0.7240094532360406, "to": "600033"}, {"from": "600063", "title": 0.6689378422290351, "to": "600118"}, {"from": "600063", "title": 0.8430920523403583, "to": "600072"}, {"from": "600063", "title": 0.8558378123519909, "to": "600018"}, {"from": "600063", "title": 0.7064464428795778, "to": "600645"}, {"from": "600063", "title": 0.8255083912464712, "to": "600038"}, {"from": "600017", "title": 0.48280134573597344, "to": "600015"}, {"from": "600017", "title": 0.45775315136922506, "to": "600029"}, {"from": "600017", "title": 0.3946952954314649, "to": "600022"}, {"from": "600017", "title": 0.723790175524561, "to": "600021"}, {"from": "600017", "title": 0.3396375394346449, "to": "600008"}, {"from": "600017", "title": 0.5496019063057257, "to": "600019"}, {"from": "600017", "title": 0.44172891067339826, "to": "600031"}, {"from": "600017", "title": 0.29460763249138544, "to": "600057"}, {"from": "600017", "title": 0.46522884203617826, "to": "600050"}, {"from": "600017", "title": 0.30578043653921044, "to": "600125"}, {"from": "600017", "title": 0.3565990880753541, "to": "600051"}, {"from": "600017", "title": 0.8389231242478361, "to": "601988"}, {"from": "600017", "title": 0.6327792291501465, "to": "600067"}, {"from": "600017", "title": 0.7295155944345765, "to": "600688"}, {"from": "600017", "title": 0.610397154434189, "to": "600064"}, {"from": "600017", "title": 0.7917029065434074, "to": "600070"}, {"from": "600017", "title": 0.7208172177271452, "to": "600016"}, {"from": "600017", "title": 0.7641334073316666, "to": "600028"}, {"from": "600017", "title": 0.4045066062318794, "to": "600039"}, {"from": "600017", "title": 0.6377456752599323, "to": "600010"}, {"from": "600017", "title": 0.5096224702848916, "to": "600012"}, {"from": "600017", "title": 0.5950480804682889, "to": "600023"}, {"from": "600017", "title": 0.43432789981962383, "to": "600037"}, {"from": "600017", "title": 0.5867963530860333, "to": "600035"}, {"from": "600017", "title": 0.6823280513150162, "to": "600020"}, {"from": "600017", "title": 0.4803996934491407, "to": "600033"}, {"from": "600017", "title": 0.49105661971135484, "to": "600118"}, {"from": "600017", "title": 0.6400391776346646, "to": "600072"}, {"from": "600017", "title": 0.7432442958073957, "to": "600036"}, {"from": "600017", "title": 0.8597006510291006, "to": "601088"}, {"from": "600017", "title": 0.7134725697547978, "to": "600018"}, {"from": "600017", "title": 0.6540869957405362, "to": "600645"}, {"from": "600017", "title": 0.8819514532658463, "to": "600038"}, {"from": "600017", "title": 0.8098238426638888, "to": "600006"}, {"from": "600000", "title": 0.6678500398078401, "to": "600015"}, {"from": "600000", "title": 0.8378910896072838, "to": "600029"}, {"from": "600000", "title": 0.8288467414542963, "to": "600022"}, {"from": "600000", "title": 0.7709973989809743, "to": "600019"}, {"from": "600000", "title": 0.823025513946195, "to": "600050"}, {"from": "600000", "title": 0.6028294577129801, "to": "601988"}, {"from": "600000", "title": 0.8956256573284791, "to": "600688"}, {"from": "600000", "title": 0.5915723659371925, "to": "600016"}, {"from": "600000", "title": 0.763872867084086, "to": "600028"}, {"from": "600000", "title": 0.9016647417328221, "to": "600012"}, {"from": "600000", "title": 0.8305083650805211, "to": "600033"}, {"from": "600000", "title": 0.7907584773969166, "to": "600036"}, {"from": "600015", "title": 0.4161802612255109, "to": "600029"}, {"from": "600015", "title": 0.44784667316711146, "to": "600022"}, {"from": "600015", "title": 0.7921307392549085, "to": "600021"}, {"from": "600015", "title": 0.4113859517017467, "to": "600008"}, {"from": "600015", "title": 0.4989084772185332, "to": "600019"}, {"from": "600015", "title": 0.650212885972041, "to": "600031"}, {"from": "600015", "title": 0.4983847342470208, "to": "600057"}, {"from": "600015", "title": 0.4809034420752654, "to": "600050"}, {"from": "600015", "title": 0.4721111602155543, "to": "600125"}, {"from": "600015", "title": 0.6515911892948448, "to": "600051"}, {"from": "600015", "title": 0.5934195567199395, "to": "601988"}, {"from": "600015", "title": 0.786499711074603, "to": "600067"}, {"from": "600015", "title": 0.7455070232550545, "to": "600688"}, {"from": "600015", "title": 0.7625800821373211, "to": "600064"}, {"from": "600015", "title": 0.7912746296001298, "to": "600070"}, {"from": "600015", "title": 0.45080149784976326, "to": "600016"}, {"from": "600015", "title": 0.5906219674974819, "to": "600028"}, {"from": "600015", "title": 0.5466873510442594, "to": "600039"}, {"from": "600015", "title": 0.7437522253535374, "to": "600010"}, {"from": "600015", "title": 0.4946198266438962, "to": "600012"}, {"from": "600015", "title": 0.7051988564001724, "to": "600023"}, {"from": "600015", "title": 0.6318400493532096, "to": "600037"}, {"from": "600015", "title": 0.7405624570075076, "to": "600035"}, {"from": "600015", "title": 0.8182672085851901, "to": "600020"}, {"from": "600015", "title": 0.4991539080835139, "to": "600033"}, {"from": "600015", "title": 0.7330985905677747, "to": "600118"}, {"from": "600015", "title": 0.6910364319740793, "to": "600036"}, {"from": "600015", "title": 0.8089324596533386, "to": "601088"}, {"from": "600015", "title": 0.8939080489373095, "to": "600018"}, {"from": "600015", "title": 0.8445753887216155, "to": "600645"}, {"from": "600029", "title": 0.5505189808168676, "to": "600022"}, {"from": "600029", "title": 0.7923365892395353, "to": "600021"}, {"from": "600029", "title": 0.43126473636106255, "to": "600008"}, {"from": "600029", "title": 0.5512790808829513, "to": "600019"}, {"from": "600029", "title": 0.6336563266302605, "to": "600031"}, {"from": "600029", "title": 0.5404741150742794, "to": "600057"}, {"from": "600029", "title": 0.6232491391402198, "to": "600050"}, {"from": "600029", "title": 0.5241603571329357, "to": "600125"}, {"from": "600029", "title": 0.6433955871869861, "to": "600051"}, {"from": "600029", "title": 0.682347390062854, "to": "601988"}, {"from": "600029", "title": 0.7365049534574712, "to": "600067"}, {"from": "600029", "title": 0.682757219233472, "to": "600688"}, {"from": "600029", "title": 0.778519545099377, "to": "600064"}, {"from": "600029", "title": 0.7738050516896637, "to": "600070"}, {"from": "600029", "title": 0.6133845753926847, "to": "600016"}, {"from": "600029", "title": 0.6711451132559955, "to": "600028"}, {"from": "600029", "title": 0.51202047666278, "to": "600039"}, {"from": "600029", "title": 0.8243507289169106, "to": "600010"}, {"from": "600029", "title": 0.4590965582035443, "to": "600012"}, {"from": "600029", "title": 0.6906563154489499, "to": "600023"}, {"from": "600029", "title": 0.6982572957324158, "to": "600037"}, {"from": "600029", "title": 0.7581708020316958, "to": "600035"}, {"from": "600029", "title": 0.8120340047675071, "to": "600020"}, {"from": "600029", "title": 0.5631080139906602, "to": "600033"}, {"from": "600029", "title": 0.741921071219158, "to": "600118"}, {"from": "600029", "title": 0.8936300025855594, "to": "600072"}, {"from": "600029", "title": 0.5715202417342989, "to": "600036"}, {"from": "600029", "title": 0.8549504386872504, "to": "601088"}, {"from": "600029", "title": 0.768182917082908, "to": "600018"}, {"from": "600029", "title": 0.8433724396981791, "to": "600006"}, {"from": "600007", "title": 0.8478568363116612, "to": "600021"}, {"from": "600007", "title": 0.8821528224351494, "to": "600008"}, {"from": "600022", "title": 0.7304040940260877, "to": "600021"}, {"from": "600022", "title": 0.42474296617881135, "to": "600008"}, {"from": "600022", "title": 0.5020788890277456, "to": "600019"}, {"from": "600022", "title": 0.3765011929125667, "to": "600031"}, {"from": "600022", "title": 0.43381692171182107, "to": "600057"}, {"from": "600022", "title": 0.32995340506941667, "to": "600050"}, {"from": "600022", "title": 0.47226760342671087, "to": "600125"}, {"from": "600022", "title": 0.49486348273899217, "to": "600051"}, {"from": "600022", "title": 0.7244917246514818, "to": "601988"}, {"from": "600022", "title": 0.5550916189834182, "to": "600067"}, {"from": "600022", "title": 0.5977019576450943, "to": "600688"}, {"from": "600022", "title": 0.5453261943750809, "to": "600064"}, {"from": "600022", "title": 0.7724870623434326, "to": "600070"}, {"from": "600022", "title": 0.5437937624303238, "to": "600016"}, {"from": "600022", "title": 0.5947678398401974, "to": "600028"}, {"from": "600022", "title": 0.4057594085985093, "to": "600039"}, {"from": "600022", "title": 0.37564646843256744, "to": "600010"}, {"from": "600022", "title": 0.44958189961112366, "to": "600012"}, {"from": "600022", "title": 0.5205696907810203, "to": "600023"}, {"from": "600022", "title": 0.3388450751873812, "to": "600037"}, {"from": "600022", "title": 0.48880698955617147, "to": "600035"}, {"from": "600022", "title": 0.5275778598682808, "to": "600020"}, {"from": "600022", "title": 0.38498134017728314, "to": "600033"}, {"from": "600022", "title": 0.40847186920335493, "to": "600118"}, {"from": "600022", "title": 0.6634675704190215, "to": "600072"}, {"from": "600022", "title": 0.7561982568290138, "to": "600036"}, {"from": "600022", "title": 0.7792254480844034, "to": "601088"}, {"from": "600022", "title": 0.864854030679211, "to": "600030"}, {"from": "600022", "title": 0.8021223780152792, "to": "600018"}, {"from": "600022", "title": 0.6486464366708867, "to": "600645"}, {"from": "600022", "title": 0.8868712469256632, "to": "600038"}, {"from": "600021", "title": 0.7365620165635729, "to": "600008"}, {"from": "600021", "title": 0.7473343206073704, "to": "600019"}, {"from": "600021", "title": 0.6338743513688823, "to": "600031"}, {"from": "600021", "title": 0.7915058358190906, "to": "600057"}, {"from": "600021", "title": 0.8529719397977369, "to": "600050"}, {"from": "600021", "title": 0.8169808794544995, "to": "600125"}, {"from": "600021", "title": 0.752828961304169, "to": "600051"}, {"from": "600021", "title": 0.7526666351983289, "to": "600688"}, {"from": "600021", "title": 0.8720064820432841, "to": "600028"}, {"from": "600021", "title": 0.8623429588883976, "to": "600039"}, {"from": "600021", "title": 0.8180381659448855, "to": "600010"}, {"from": "600021", "title": 0.830247513127654, "to": "600037"}, {"from": "600021", "title": 0.8470313576161997, "to": "600035"}, {"from": "600021", "title": 0.8218664749792971, "to": "600033"}, {"from": "600021", "title": 0.7756931562096154, "to": "600118"}, {"from": "600021", "title": 0.8416966630014299, "to": "600072"}, {"from": "600021", "title": 0.7840172500151249, "to": "600036"}, {"from": "600021", "title": 0.8680653550864996, "to": "601088"}, {"from": "600008", "title": 0.5579880491246717, "to": "600019"}, {"from": "600008", "title": 0.542770719952752, "to": "600031"}, {"from": "600008", "title": 0.3713060660989584, "to": "600057"}, {"from": "600008", "title": 0.4836568781646341, "to": "600050"}, {"from": "600008", "title": 0.4243954197393074, "to": "600125"}, {"from": "600008", "title": 0.49227845635716055, "to": "600051"}, {"from": "600008", "title": 0.8315700209756686, "to": "601988"}, {"from": "600008", "title": 0.7533843948758191, "to": "600067"}, {"from": "600008", "title": 0.7605916949134923, "to": "600688"}, {"from": "600008", "title": 0.7097539162719119, "to": "600064"}, {"from": "600008", "title": 0.7699710702366346, "to": "600070"}, {"from": "600008", "title": 0.7029815367656739, "to": "600016"}, {"from": "600008", "title": 0.714363416951102, "to": "600028"}, {"from": "600008", "title": 0.49311756673508017, "to": "600039"}, {"from": "600008", "title": 0.7147785788315987, "to": "600010"}, {"from": "600008", "title": 0.5032399501797173, "to": "600012"}, {"from": "600008", "title": 0.7099434801726968, "to": "600023"}, {"from": "600008", "title": 0.5551440832467666, "to": "600037"}, {"from": "600008", "title": 0.6397950916290523, "to": "600035"}, {"from": "600008", "title": 0.7749194589192272, "to": "600020"}, {"from": "600008", "title": 0.5772556725073518, "to": "600033"}, {"from": "600008", "title": 0.5579953783460789, "to": "600118"}, {"from": "600008", "title": 0.7200187208826695, "to": "600072"}, {"from": "600008", "title": 0.8370153548112839, "to": "600036"}, {"from": "600008", "title": 0.8392651608477966, "to": "601088"}, {"from": "600008", "title": 0.8208656591552201, "to": "600018"}, {"from": "600008", "title": 0.7220782345018069, "to": "600645"}, {"from": "600008", "title": 0.8653408497265135, "to": "600038"}, {"from": "600019", "title": 0.5967554325646744, "to": "600031"}, {"from": "600019", "title": 0.5159357536414201, "to": "600057"}, {"from": "600019", "title": 0.5396002699775103, "to": "600050"}, {"from": "600019", "title": 0.5115276970558376, "to": "600125"}, {"from": "600019", "title": 0.5549309292929807, "to": "600051"}, {"from": "600019", "title": 0.6548258293412675, "to": "601988"}, {"from": "600019", "title": 0.7554616572508307, "to": "600067"}, {"from": "600019", "title": 0.679310156003182, "to": "600688"}, {"from": "600019", "title": 0.8478504609827673, "to": "600064"}, {"from": "600019", "title": 0.5959738410034502, "to": "600016"}, {"from": "600019", "title": 0.5182593629804332, "to": "600028"}, {"from": "600019", "title": 0.617198778186781, "to": "600039"}, {"from": "600019", "title": 0.7240220722459295, "to": "600010"}, {"from": "600019", "title": 0.673784136253928, "to": "600012"}, {"from": "600019", "title": 0.7389497738718175, "to": "600023"}, {"from": "600019", "title": 0.5994488604565423, "to": "600037"}, {"from": "600019", "title": 0.7665149273157885, "to": "600035"}, {"from": "600019", "title": 0.8501926523081147, "to": "600020"}, {"from": "600019", "title": 0.5707751293958317, "to": "600033"}, {"from": "600019", "title": 0.6760245556651919, "to": "600118"}, {"from": "600019", "title": 0.7290562318114457, "to": "600036"}, {"from": "600019", "title": 0.6956604912111806, "to": "601088"}, {"from": "600019", "title": 0.8135572549474437, "to": "600018"}, {"from": "600019", "title": 0.8684012280039286, "to": "600645"}, {"from": "600019", "title": 0.8558267832490098, "to": "600006"}, {"from": "600031", "title": 0.5021828061521141, "to": "600057"}, {"from": "600031", "title": 0.5306360551599303, "to": "600050"}, {"from": "600031", "title": 0.5342297273604961, "to": "600125"}, {"from": "600031", "title": 0.4394175128436456, "to": "600051"}, {"from": "600031", "title": 0.8810738155882876, "to": "601988"}, {"from": "600031", "title": 0.5601851896001944, "to": "600067"}, {"from": "600031", "title": 0.6587039013913881, "to": "600688"}, {"from": "600031", "title": 0.6136122152061019, "to": "600064"}, {"from": "600031", "title": 0.7687078697914642, "to": "600016"}, {"from": "600031", "title": 0.7329874987822661, "to": "600028"}, {"from": "600031", "title": 0.5146475483472016, "to": "600039"}, {"from": "600031", "title": 0.47880834019958346, "to": "600010"}, {"from": "600031", "title": 0.6259632044235812, "to": "600012"}, {"from": "600031", "title": 0.5516405419862243, "to": "600023"}, {"from": "600031", "title": 0.42458129329828503, "to": "600037"}, {"from": "600031", "title": 0.4936177714219213, "to": "600035"}, {"from": "600031", "title": 0.6170824786753042, "to": "600020"}, {"from": "600031", "title": 0.5460113664045644, "to": "600033"}, {"from": "600031", "title": 0.387356152287527, "to": "600118"}, {"from": "600031", "title": 0.5935123035753187, "to": "600072"}, {"from": "600031", "title": 0.7729968478635725, "to": "600036"}, {"from": "600031", "title": 0.8665654528216766, "to": "601088"}, {"from": "600031", "title": 0.7262895453844133, "to": "600018"}, {"from": "600031", "title": 0.6420805580262549, "to": "600645"}, {"from": "600031", "title": 0.8768316247037884, "to": "600038"}, {"from": "600057", "title": 0.42687113008982525, "to": "600050"}, {"from": "600057", "title": 0.29428487730757624, "to": "600125"}, {"from": "600057", "title": 0.31466664664472105, "to": "600051"}, {"from": "600057", "title": 0.7898766090963364, "to": "601988"}, {"from": "600057", "title": 0.6666128822460379, "to": "600067"}, {"from": "600057", "title": 0.7662840813466862, "to": "600688"}, {"from": "600057", "title": 0.60488110275315, "to": "600064"}, {"from": "600057", "title": 0.7596129313230867, "to": "600070"}, {"from": "600057", "title": 0.7115043646926411, "to": "600016"}, {"from": "600057", "title": 0.7674015318928264, "to": "600028"}, {"from": "600057", "title": 0.4066703046045332, "to": "600039"}, {"from": "600057", "title": 0.6522569855688274, "to": "600010"}, {"from": "600057", "title": 0.5573834758111041, "to": "600012"}, {"from": "600057", "title": 0.6099906935987405, "to": "600023"}, {"from": "600057", "title": 0.4187884949951625, "to": "600037"}, {"from": "600057", "title": 0.5927707879839532, "to": "600035"}, {"from": "600057", "title": 0.7006149475806501, "to": "600020"}, {"from": "600057", "title": 0.4756095407886967, "to": "600033"}, {"from": "600057", "title": 0.47894454700466427, "to": "600118"}, {"from": "600057", "title": 0.7092762770807963, "to": "600072"}, {"from": "600057", "title": 0.825650627976261, "to": "600036"}, {"from": "600057", "title": 0.8698668918238038, "to": "601088"}, {"from": "600057", "title": 0.6909291036630035, "to": "600018"}, {"from": "600057", "title": 0.6218742521371672, "to": "600645"}, {"from": "600057", "title": 0.8640392977411079, "to": "600038"}, {"from": "600057", "title": 0.7415488095514843, "to": "600006"}, {"from": "600050", "title": 0.5071442778884195, "to": "600125"}, {"from": "600050", "title": 0.550050167227699, "to": "600051"}, {"from": "600050", "title": 0.7611998705553937, "to": "601988"}, {"from": "600050", "title": 0.6191136162939734, "to": "600067"}, {"from": "600050", "title": 0.7085014106437887, "to": "600688"}, {"from": "600050", "title": 0.5573349883098799, "to": "600064"}, {"from": "600050", "title": 0.7723212802023913, "to": "600070"}, {"from": "600050", "title": 0.5281408231068144, "to": "600016"}, {"from": "600050", "title": 0.6076479780775957, "to": "600028"}, {"from": "600050", "title": 0.44274538429640065, "to": "600039"}, {"from": "600050", "title": 0.49880350698045023, "to": "600010"}, {"from": "600050", "title": 0.5373704232290513, "to": "600012"}, {"from": "600050", "title": 0.5900877441908261, "to": "600023"}, {"from": "600050", "title": 0.327412818142776, "to": "600037"}, {"from": "600050", "title": 0.5772387843175404, "to": "600035"}, {"from": "600050", "title": 0.5983397520644022, "to": "600020"}, {"from": "600050", "title": 0.40413966721012246, "to": "600033"}, {"from": "600050", "title": 0.4501691280401249, "to": "600118"}, {"from": "600050", "title": 0.7535103872353974, "to": "600072"}, {"from": "600050", "title": 0.8565032522261739, "to": "600036"}, {"from": "600050", "title": 0.736241717684209, "to": "601088"}, {"from": "600050", "title": 0.8884161319113462, "to": "600030"}, {"from": "600050", "title": 0.8864703076033148, "to": "600018"}, {"from": "600050", "title": 0.625350723349365, "to": "600645"}, {"from": "600050", "title": 0.8563243649651798, "to": "600038"}, {"from": "600125", "title": 0.3601221926320132, "to": "600051"}, {"from": "600125", "title": 0.780090576121242, "to": "601988"}, {"from": "600125", "title": 0.7355243889498364, "to": "600067"}, {"from": "600125", "title": 0.8381812120839996, "to": "600688"}, {"from": "600125", "title": 0.648778154788981, "to": "600064"}, {"from": "600125", "title": 0.7184317388826283, "to": "600070"}, {"from": "600125", "title": 0.7216831914759773, "to": "600016"}, {"from": "600125", "title": 0.7390254628997384, "to": "600028"}, {"from": "600125", "title": 0.4864979949327131, "to": "600039"}, {"from": "600125", "title": 0.7493543823187646, "to": "600010"}, {"from": "600125", "title": 0.5736619844592507, "to": "600012"}, {"from": "600125", "title": 0.5927130330449059, "to": "600023"}, {"from": "600125", "title": 0.4954959566393401, "to": "600037"}, {"from": "600125", "title": 0.6166921638249498, "to": "600035"}, {"from": "600125", "title": 0.7315863629996612, "to": "600020"}, {"from": "600125", "title": 0.5493791346368414, "to": "600033"}, {"from": "600125", "title": 0.5720239150803906, "to": "600118"}, {"from": "600125", "title": 0.7864181226914674, "to": "600072"}, {"from": "600125", "title": 0.8196019203886576, "to": "600036"}, {"from": "600125", "title": 0.6727233791163193, "to": "600018"}, {"from": "600125", "title": 0.6608976236462595, "to": "600645"}, {"from": "600125", "title": 0.8591593153624884, "to": "600038"}, {"from": "600125", "title": 0.805862486710049, "to": "600006"}, {"from": "600051", "title": 0.9002445760650004, "to": "601988"}, {"from": "600051", "title": 0.6532027615584132, "to": "600067"}, {"from": "600051", "title": 0.7839653388489579, "to": "600688"}, {"from": "600051", "title": 0.6398294571353514, "to": "600064"}, {"from": "600051", "title": 0.8556094475793782, "to": "600070"}, {"from": "600051", "title": 0.8287844624014994, "to": "600016"}, {"from": "600051", "title": 0.8183654375652296, "to": "600028"}, {"from": "600051", "title": 0.45916608894209504, "to": "600039"}, {"from": "600051", "title": 0.6699435793303945, "to": "600010"}, {"from": "600051", "title": 0.6394439011732754, "to": "600012"}, {"from": "600051", "title": 0.6149455266280088, "to": "600023"}, {"from": "600051", "title": 0.4431005312851631, "to": "600037"}, {"from": "600051", "title": 0.5868094363591211, "to": "600035"}, {"from": "600051", "title": 0.7207250486265562, "to": "600020"}, {"from": "600051", "title": 0.5548460726956581, "to": "600033"}, {"from": "600051", "title": 0.45516287420015145, "to": "600118"}, {"from": "600051", "title": 0.6898699223714903, "to": "600072"}, {"from": "600051", "title": 0.870933600745098, "to": "600036"}, {"from": "600051", "title": 0.672493010495869, "to": "600018"}, {"from": "600051", "title": 0.61280115990256, "to": "600645"}, {"from": "600051", "title": 0.8412297623801203, "to": "600038"}, {"from": "600051", "title": 0.7212256660525643, "to": "600006"}, {"from": "601988", "title": 0.818633664198725, "to": "600067"}, {"from": "601988", "title": 0.7484963644955812, "to": "600688"}, {"from": "601988", "title": 0.8527292449877482, "to": "600064"}, {"from": "601988", "title": 0.8191291200880826, "to": "600070"}, {"from": "601988", "title": 0.5089063150109872, "to": "600016"}, {"from": "601988", "title": 0.6917699198594512, "to": "600028"}, {"from": "601988", "title": 0.7488697273615735, "to": "600039"}, {"from": "601988", "title": 0.8533344953654902, "to": "600010"}, {"from": "601988", "title": 0.6659007345547163, "to": "600012"}, {"from": "601988", "title": 0.7482445472867639, "to": "600023"}, {"from": "601988", "title": 0.8395965655541292, "to": "600037"}, {"from": "601988", "title": 0.8633397577191468, "to": "600035"}, {"from": "601988", "title": 0.8293642845708702, "to": "600020"}, {"from": "601988", "title": 0.6578436004094353, "to": "600033"}, {"from": "601988", "title": 0.6507883203691306, "to": "600036"}, {"from": "601988", "title": 0.840707306450197, "to": "600018"}, {"from": "600067", "title": 0.5079386825023501, "to": "600688"}, {"from": "600067", "title": 0.4463874672245861, "to": "600064"}, {"from": "600067", "title": 0.8275321787581187, "to": "600070"}, {"from": "600067", "title": 0.7139139740398084, "to": "600016"}, {"from": "600067", "title": 0.8614191206425458, "to": "600028"}, {"from": "600067", "title": 0.4519089301811399, "to": "600039"}, {"from": "600067", "title": 0.49455873430215413, "to": "600010"}, {"from": "600067", "title": 0.5275131518330016, "to": "600012"}, {"from": "600067", "title": 0.45173407362614243, "to": "600023"}, {"from": "600067", "title": 0.48844152240374733, "to": "600037"}, {"from": "600067", "title": 0.585028762756961, "to": "600035"}, {"from": "600067", "title": 0.47356536413021943, "to": "600020"}, {"from": "600067", "title": 0.46241709180590684, "to": "600033"}, {"from": "600067", "title": 0.544185473200063, "to": "600118"}, {"from": "600067", "title": 0.7876739760945805, "to": "600072"}, {"from": "600067", "title": 0.7736416446439988, "to": "600036"}, {"from": "600067", "title": 0.7435194574066398, "to": "600018"}, {"from": "600067", "title": 0.904374379274657, "to": "600645"}, {"from": "600067", "title": 0.6894610680158015, "to": "600059"}, {"from": "600067", "title": 0.8343514454266584, "to": "600006"}, {"from": "600688", "title": 0.7136730750047187, "to": "600064"}, {"from": "600688", "title": 0.676716164595979, "to": "600016"}, {"from": "600688", "title": 0.7405882134995133, "to": "600028"}, {"from": "600688", "title": 0.5907131980386817, "to": "600039"}, {"from": "600688", "title": 0.5860982486894196, "to": "600010"}, {"from": "600688", "title": 0.5744790997415118, "to": "600012"}, {"from": "600688", "title": 0.6527644931941939, "to": "600023"}, {"from": "600688", "title": 0.6804845403871178, "to": "600037"}, {"from": "600688", "title": 0.7245146349304947, "to": "600035"}, {"from": "600688", "title": 0.6854364481504179, "to": "600020"}, {"from": "600688", "title": 0.5089977079553368, "to": "600033"}, {"from": "600688", "title": 0.7073998687960259, "to": "600118"}, {"from": "600688", "title": 0.9018686346631046, "to": "600073"}, {"from": "600688", "title": 0.6672100975598465, "to": "600036"}, {"from": "600688", "title": 0.7435968115280169, "to": "601088"}, {"from": "600688", "title": 0.854476140253958, "to": "600018"}, {"from": "600688", "title": 0.7189306998075752, "to": "600059"}, {"from": "600064", "title": 0.6642420694260578, "to": "600070"}, {"from": "600064", "title": 0.7523527428987294, "to": "600016"}, {"from": "600064", "title": 0.4555739411471884, "to": "600039"}, {"from": "600064", "title": 0.539336913075506, "to": "600010"}, {"from": "600064", "title": 0.5180671222272386, "to": "600012"}, {"from": "600064", "title": 0.3849019105786835, "to": "600023"}, {"from": "600064", "title": 0.45917279109304554, "to": "600037"}, {"from": "600064", "title": 0.4719877026019691, "to": "600035"}, {"from": "600064", "title": 0.35352657261710896, "to": "600020"}, {"from": "600064", "title": 0.46879210357269235, "to": "600033"}, {"from": "600064", "title": 0.5174308591996235, "to": "600118"}, {"from": "600064", "title": 0.692664373685551, "to": "600072"}, {"from": "600064", "title": 0.7124218684799734, "to": "600018"}, {"from": "600064", "title": 0.7653848497364621, "to": "600645"}, {"from": "600064", "title": 0.8329502220069895, "to": "600059"}, {"from": "600070", "title": 0.7804766858461866, "to": "600016"}, {"from": "600070", "title": 0.7333729958284547, "to": "600039"}, {"from": "600070", "title": 0.6420460440172961, "to": "600012"}, {"from": "600070", "title": 0.6592111815081826, "to": "600023"}, {"from": "600070", "title": 0.7666580137334967, "to": "600037"}, {"from": "600070", "title": 0.7512718051164679, "to": "600035"}, {"from": "600070", "title": 0.6859161934875043, "to": "600020"}, {"from": "600070", "title": 0.7965112194198213, "to": "600033"}, {"from": "600070", "title": 0.8504529159677537, "to": "600118"}, {"from": "600070", "title": 0.8324568883842287, "to": "600018"}, {"from": "600016", "title": 0.5571842921568826, "to": "600028"}, {"from": "600016", "title": 0.6071644099762853, "to": "600039"}, {"from": "600016", "title": 0.6936580342076178, "to": "600010"}, {"from": "600016", "title": 0.5334907835200453, "to": "600012"}, {"from": "600016", "title": 0.6759949425320779, "to": "600023"}, {"from": "600016", "title": 0.6635724417366805, "to": "600037"}, {"from": "600016", "title": 0.8127164967790171, "to": "600035"}, {"from": "600016", "title": 0.7388727472387767, "to": "600020"}, {"from": "600016", "title": 0.49592953361749165, "to": "600033"}, {"from": "600016", "title": 0.8211275734151929, "to": "600118"}, {"from": "600016", "title": 0.7418326826172843, "to": "600036"}, {"from": "600016", "title": 0.7554022694107199, "to": "601088"}, {"from": "600028", "title": 0.7533677735829886, "to": "600039"}, {"from": "600028", "title": 0.7786408074143556, "to": "600010"}, {"from": "600028", "title": 0.7186452162215703, "to": "600012"}, {"from": "600028", "title": 0.8326950749228225, "to": "600023"}, {"from": "600028", "title": 0.7329447631784562, "to": "600037"}, {"from": "600028", "title": 0.8573407112673553, "to": "600035"}, {"from": "600028", "title": 0.8474248167413524, "to": "600020"}, {"from": "600028", "title": 0.6678529332886737, "to": "600033"}, {"from": "600028", "title": 0.7675647239055226, "to": "600118"}, {"from": "600028", "title": 0.7607119884890532, "to": "600036"}, {"from": "600028", "title": 0.709232379795548, "to": "601088"}, {"from": "600028", "title": 0.7949825787010295, "to": "600030"}, {"from": "600028", "title": 0.9023556319036076, "to": "600038"}, {"from": "600039", "title": 0.5784821418475573, "to": "600010"}, {"from": "600039", "title": 0.3353033611885917, "to": "600012"}, {"from": "600039", "title": 0.4768415514908855, "to": "600023"}, {"from": "600039", "title": 0.4225405137090701, "to": "600037"}, {"from": "600039", "title": 0.5558216569713431, "to": "600035"}, {"from": "600039", "title": 0.5619915790904214, "to": "600020"}, {"from": "600039", "title": 0.3112605396782011, "to": "600033"}, {"from": "600039", "title": 0.4803335281514884, "to": "600118"}, {"from": "600039", "title": 0.7046960052546212, "to": "600072"}, {"from": "600039", "title": 0.7432777082163023, "to": "600036"}, {"from": "600039", "title": 0.8406325708006784, "to": "601088"}, {"from": "600039", "title": 0.7213421313603173, "to": "600018"}, {"from": "600039", "title": 0.7354524375881255, "to": "600645"}, {"from": "600039", "title": 0.8825298094076232, "to": "600059"}, {"from": "600039", "title": 0.7812668923201752, "to": "600006"}, {"from": "600010", "title": 0.6545644861023705, "to": "600012"}, {"from": "600010", "title": 0.572408411586875, "to": "600023"}, {"from": "600010", "title": 0.4013553301206422, "to": "600037"}, {"from": "600010", "title": 0.5469498241316854, "to": "600035"}, {"from": "600010", "title": 0.4701440750118441, "to": "600020"}, {"from": "600010", "title": 0.5018595625038714, "to": "600033"}, {"from": "600010", "title": 0.45739139380034427, "to": "600118"}, {"from": "600010", "title": 0.6561031545389269, "to": "600072"}, {"from": "600010", "title": 0.865410700155248, "to": "600036"}, {"from": "600010", "title": 0.8129758481922489, "to": "601088"}, {"from": "600010", "title": 0.8595664755940897, "to": "600030"}, {"from": "600010", "title": 0.8923575382608887, "to": "600018"}, {"from": "600010", "title": 0.7227480952472293, "to": "600645"}, {"from": "600010", "title": 0.7909523639313858, "to": "600059"}, {"from": "600010", "title": 0.8416279469484346, "to": "600004"}, {"from": "600012", "title": 0.4888085856996728, "to": "600023"}, {"from": "600012", "title": 0.5617041218719178, "to": "600037"}, {"from": "600012", "title": 0.6025814719768211, "to": "600035"}, {"from": "600012", "title": 0.5568366495262893, "to": "600020"}, {"from": "600012", "title": 0.3859715345815066, "to": "600033"}, {"from": "600012", "title": 0.6294976300677028, "to": "600118"}, {"from": "600012", "title": 0.8165008958795754, "to": "600072"}, {"from": "600012", "title": 0.713720863588486, "to": "600036"}, {"from": "600012", "title": 0.8984695157722056, "to": "601088"}, {"from": "600012", "title": 0.7850439692535631, "to": "600018"}, {"from": "600012", "title": 0.8925260346158479, "to": "600645"}, {"from": "600012", "title": 0.87971509951056, "to": "600006"}, {"from": "600023", "title": 0.496416486896202, "to": "600037"}, {"from": "600023", "title": 0.5639788231458134, "to": "600035"}, {"from": "600023", "title": 0.4416642960611191, "to": "600020"}, {"from": "600023", "title": 0.4947663786133913, "to": "600033"}, {"from": "600023", "title": 0.5883868057746929, "to": "600118"}, {"from": "600023", "title": 0.7607927882157721, "to": "600072"}, {"from": "600023", "title": 0.8096544471111452, "to": "600036"}, {"from": "600023", "title": 0.6317288716914502, "to": "600018"}, {"from": "600023", "title": 0.8097289191422191, "to": "600645"}, {"from": "600023", "title": 0.840862088378403, "to": "600059"}, {"from": "600023", "title": 0.8536490996944899, "to": "600006"}, {"from": "600037", "title": 0.5087484812619432, "to": "600035"}, {"from": "600037", "title": 0.46751501439652965, "to": "600020"}, {"from": "600037", "title": 0.4321861339501093, "to": "600033"}, {"from": "600037", "title": 0.32532312197127217, "to": "600118"}, {"from": "600037", "title": 0.6300234628692141, "to": "600072"}, {"from": "600037", "title": 0.8673126131789962, "to": "600036"}, {"from": "600037", "title": 0.8294158455372355, "to": "601088"}, {"from": "600037", "title": 0.7913732212917411, "to": "600018"}, {"from": "600037", "title": 0.5826276541927318, "to": "600645"}, {"from": "600037", "title": 0.8797583899510022, "to": "600038"}, {"from": "600037", "title": 0.8644697992649257, "to": "600059"}, {"from": "600037", "title": 0.9041629189870538, "to": "600004"}, {"from": "600035", "title": 0.4873849412918677, "to": "600020"}, {"from": "600035", "title": 0.5699805028101377, "to": "600033"}, {"from": "600035", "title": 0.42952731587075, "to": "600118"}, {"from": "600035", "title": 0.7050439561635358, "to": "600072"}, {"from": "600035", "title": 0.7032604131048845, "to": "600018"}, {"from": "600035", "title": 0.738368629295717, "to": "600645"}, {"from": "600035", "title": 0.8719510190773567, "to": "600059"}, {"from": "600020", "title": 0.544001990407891, "to": "600033"}, {"from": "600020", "title": 0.5197317764123915, "to": "600118"}, {"from": "600020", "title": 0.717602905639807, "to": "600072"}, {"from": "600020", "title": 0.8801962428341059, "to": "600036"}, {"from": "600020", "title": 0.801280218332778, "to": "600018"}, {"from": "600020", "title": 0.8188320323199744, "to": "600645"}, {"from": "600020", "title": 0.7754338255260534, "to": "600059"}, {"from": "600033", "title": 0.5352032807311873, "to": "600118"}, {"from": "600033", "title": 0.7930973748239284, "to": "600072"}, {"from": "600033", "title": 0.6613900024813649, "to": "600036"}, {"from": "600033", "title": 0.769183628572114, "to": "601088"}, {"from": "600033", "title": 0.7819033884705099, "to": "600018"}, {"from": "600033", "title": 0.7901048060789139, "to": "600645"}, {"from": "600033", "title": 0.8915495610674716, "to": "600059"}, {"from": "600033", "title": 0.8647583318294729, "to": "600006"}, {"from": "600118", "title": 0.5486459152130864, "to": "600072"}, {"from": "600118", "title": 0.8716637543850179, "to": "601088"}, {"from": "600118", "title": 0.774562160955376, "to": "600018"}, {"from": "600118", "title": 0.5635880518179966, "to": "600645"}, {"from": "600118", "title": 0.8060326207265704, "to": "600038"}, {"from": "600118", "title": 0.8117248816825493, "to": "600059"}, {"from": "600072", "title": 0.5164676181750335, "to": "600645"}, {"from": "600072", "title": 0.8761823307619702, "to": "600038"}, {"from": "600073", "title": 0.8943351962067067, "to": "600036"}, {"from": "600073", "title": 0.8408413937228404, "to": "600018"}, {"from": "600073", "title": 0.797388360260188, "to": "600009"}, {"from": "600036", "title": 0.8262946304936578, "to": "600018"}, {"from": "600036", "title": 0.8978618115880801, "to": "600006"}, {"from": "601088", "title": 0.7560171185309381, "to": "600030"}, {"from": "601088", "title": 0.8827876399103134, "to": "600004"}, {"from": "600030", "title": 0.8915792613766924, "to": "600038"}, {"from": "600018", "title": 0.5892723604050402, "to": "600006"}, {"from": "600645", "title": 0.600703781225798, "to": "600038"}, {"from": "600645", "title": 0.7591085566925407, "to": "600027"}, {"from": "600038", "title": 0.7872658178221492, "to": "600027"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
